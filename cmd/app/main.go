@@ -17,7 +17,7 @@ func main() {
 	cfg := config.Mustload()
 	mainLog := logger.New(cfg.LoggerLevel)
 
-	mainServer := server.New(mainLog)
+	mainServer := server.New(mainLog, cfg)
 
 	go func() {
 		if err := mainServer.Start(); err != nil && err != http.ErrServerClosed {

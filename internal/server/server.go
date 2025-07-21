@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"github.com/Kofandr/Product_Accounting_Service/internal/config"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/labstack/echo/v4"
 	"log/slog"
+	"strconv"
 )
 
 type Server struct {
@@ -12,10 +15,13 @@ type Server struct {
 	log  *slog.Logger
 }
 
-func New(log *slog.Logger) *Server {
+func New(log *slog.Logger, cfg *config.Configuration) *Server {
 	serverEcho := echo.New()
 
-	return &Server{serverEcho, ":8080", log}
+	serverEcho.GET("/categories", handler.GetCategoriesAll)
+	serverEcho.GET("/categories/:name", handler.GetCategoryByName)
+
+	return &Server{serverEcho, (":" + strconv.Itoa(cfg.Port)), log}
 }
 
 func (server *Server) Start() error {
