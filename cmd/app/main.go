@@ -17,15 +17,15 @@ import (
 func main() {
 	cfg := config.Mustload()
 	mainLog := logger.New(cfg.LoggerLevel)
-	
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+
+	db, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 
 	}
-	defer conn.Close(context.Background())
+	defer db.Close(context.Background())
 
-	mainServer := server.New(mainLog, cfg)
+	mainServer := server.New(mainLog, cfg, db)
 
 	go func() {
 		if err := mainServer.Start(); err != nil && err != http.ErrServerClosed {
