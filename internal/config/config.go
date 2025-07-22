@@ -11,6 +11,7 @@ import (
 type Configuration struct {
 	Port        int    `env:"PORT" envdefault:"8080" validate:"required,min=1,max=65535"`
 	LoggerLevel string `env:"LOGGER_LEVEL" envdefault:"INFO" validate:"required,oneof=DEBUG INFO WARN ERROR"`
+	DatabaseUrl string `env:"DATABASE_URL" validate:"required"`
 }
 
 func Load() (*Configuration, error) {

@@ -5,6 +5,7 @@ import (
 	"github.com/Kofandr/Product_Accounting_Service/internal/config"
 	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
 	"github.com/Kofandr/Product_Accounting_Service/internal/server"
+	"github.com/jackc/pgx/v5"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,13 @@ import (
 func main() {
 	cfg := config.Mustload()
 	mainLog := logger.New(cfg.LoggerLevel)
+	
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+
+	}
+	defer conn.Close(context.Background())
 
 	mainServer := server.New(mainLog, cfg)
 
