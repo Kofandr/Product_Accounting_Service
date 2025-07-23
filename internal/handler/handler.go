@@ -1,13 +1,24 @@
 package handler
 
-import "github.com/jackc/pgx/v5"
+import (
+	"context"
+	"github.com/jackc/pgx/v5"
+)
 
 type Handler struct {
-	db *pgx.Conn
+	db Repository
 }
 
 func New(db *pgx.Conn) *Handler {
 	return &Handler{
 		db,
 	}
+}
+
+type Repository interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+type Row interface {
+	Scan(args ...any) error
 }
