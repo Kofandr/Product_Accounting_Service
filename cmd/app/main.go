@@ -16,7 +16,7 @@ import (
 
 func main() {
 	cfg := config.Mustload()
-	mainLog := logger.New(cfg.LoggerLevel)
+	logg := logger.New(cfg.LoggerLevel)
 
 	db, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
@@ -25,7 +25,7 @@ func main() {
 	}
 	defer db.Close(context.Background())
 
-	mainServer := server.New(mainLog, cfg, db)
+	mainServer := server.New(logg, cfg, db)
 
 	go func() {
 		if err := mainServer.Start(); err != nil && err != http.ErrServerClosed {
@@ -42,11 +42,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	mainLog.Info("Shutting down...")
+	logg.Info("Shutting down...")
 	if err := mainServer.Shutdown(ctx); err != nil {
-		mainLog.Error("Shutdown failed", "error", err)
+		logg.Error("Shutdown failed", "error", err)
 	} else {
-		mainLog.Info("Server stopped")
+		logg.Info("Server stopped")
 	}
 
 }
