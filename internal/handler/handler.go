@@ -9,7 +9,7 @@ type Handler struct {
 	db Repository
 }
 
-func New(db *pgx.Conn) *Handler {
+func New(db Repository) *Handler {
 	return &Handler{
 		db,
 	}
