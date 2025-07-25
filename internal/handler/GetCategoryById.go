@@ -4,16 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
 )
-
-func (handler *Handler) GetCategoriesAll(c echo.Context) error {
-
-	return nil
-}
 
 func (handler *Handler) GetCategoryById(c echo.Context) error {
 	logg := logger.MustLoggerFromCtx(c.Request().Context())
@@ -22,23 +16,13 @@ func (handler *Handler) GetCategoryById(c echo.Context) error {
 
 	stringId := c.Param("id")
 
-	categoryId, err := strconv.Atoi(stringId)
+	categoryId, err := strconv.ParseInt(stringId, 10, 64)
 	if err != nil {
 		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
-
-	var categories model.Categories
-	err = handler.db.QueryRow(
-		ctx,
-		"SELECT id, name, description FROM categories WHERE id = $1",
-		categoryId,
-	).Scan(
-		&categories.Id,
-		&categories.Name,
-		&categories.Description,
-	)
+	categories, err := handler.db.GetCategory(ctx, categoryId)
 	if err != nil {
 
 		if errors.Is(err, sql.ErrNoRows) {

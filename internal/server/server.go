@@ -5,6 +5,7 @@ import (
 	"github.com/Kofandr/Product_Accounting_Service/internal/config"
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"log/slog"
@@ -20,8 +21,8 @@ type Server struct {
 
 func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 	serverEcho := echo.New()
-
-	handler := handler.New(db)
+	pgxRepository := repository.New(db)
+	handler := handler.New(pgxRepository)
 	serverEcho.Use(middleware.RequestLogger(logg))
 
 	serverEcho.GET("/categories", handler.GetCategoriesAll)

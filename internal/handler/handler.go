@@ -1,24 +1,15 @@
 package handler
 
 import (
-	"context"
-	"github.com/jackc/pgx/v5"
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
 )
 
 type Handler struct {
-	db Repository
+	db repository.Repository
 }
 
-func New(db Repository) *Handler {
+func New(db repository.Repository) *Handler {
 	return &Handler{
 		db,
 	}
-}
-
-type Repository interface {
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-}
-
-type Row interface {
-	Scan(args ...any) error
 }
