@@ -9,3 +9,7 @@ type Category struct {
 	Name        string `json:"name" example:"Name"`
 	Description string `json:"description" example:"Description"`
 }
+type CreateCategoryRequest struct {
+	Name        string `json:"name" `
+	Description string `json:"description"`
+}

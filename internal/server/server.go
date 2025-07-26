@@ -27,6 +27,7 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 
 	serverEcho.GET("/categories", handler.GetCategoriesAll)
 	serverEcho.GET("/categories/:id", handler.GetCategoryById)
+	serverEcho.POST("/categories", handler.CreateCategory)
 
 	return &Server{serverEcho, (":" + strconv.Itoa(cfg.Port)), logg, db}
 }

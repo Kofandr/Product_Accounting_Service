@@ -2,8 +2,15 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+)
+
+var (
+	ErrDuplicate = errors.New("duplicate entry")
 )
 
 type PgxRepository struct {
@@ -16,7 +23,7 @@ func New(db *pgx.Conn) *PgxRepository {
 	}
 }
 
-func (pgxRepository *PgxRepository) GetCategory(ctx context.Context, id int64) (*model.Category, error) {
+func (pgxRepository *PgxRepository) GetCategory(ctx context.Context, id int) (*model.Category, error) {
 	var categories model.Category
 	err := pgxRepository.db.QueryRow(ctx,
 		"SELECT id, name, description FROM categories WHERE id = $1",
@@ -54,4 +61,23 @@ func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*mode
 
 	return &model.AllCategories{Categories: categories}, nil
 
+}
+
+func (pgxRepository *PgxRepository) CreateCategory(ctx context.Context, category *model.CreateCategoryRequest) (int, error) {
+	var id int
+	err := pgxRepository.db.QueryRow(ctx,
+		"INSERT INTO categories (name, description) VALUES ($1, $2) RETURNING id",
+		category.Name,
+		category.Description,
+	).Scan(&id)
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+
+			if pgErr.Code == "23505" {
+				return id, fmt.Errorf("%w: category '%s' already exists", ErrDuplicate, category.Name)
+			}
+		}
+		return id, fmt.Errorf("failed to create category: %w", err)
+	}
+	return id, err
 }
