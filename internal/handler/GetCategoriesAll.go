@@ -1,8 +1,22 @@
 package handler
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/labstack/echo/v4"
+	"net/http"
+)
 
 func (handler *Handler) GetCategoriesAll(c echo.Context) error {
+	logg := logger.MustLoggerFromCtx(c.Request().Context())
 
-	return nil
+	ctx := c.Request().Context()
+
+	categories, err := handler.db.GetCategoriesAll(ctx)
+	if err != nil {
+		errResp := map[string]string{"err": "Server error"}
+		logg.Error("An error occurred while accessing the database", "err", err)
+		return c.JSON(http.StatusInternalServerError, errResp)
+	}
+
+	return c.JSON(http.StatusOK, categories)
 }

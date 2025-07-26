@@ -23,7 +23,7 @@ func TestGetCategoryById(t *testing.T) {
 		name           string
 		param          string
 		mockOn         int64
-		mockReturn     *model.Categories
+		mockReturn     *model.Category
 		mockErr        error
 		expectedStatus int
 		expectedBody   string
@@ -32,7 +32,7 @@ func TestGetCategoryById(t *testing.T) {
 			name:   "Normal",
 			param:  "1",
 			mockOn: 1,
-			mockReturn: &model.Categories{
+			mockReturn: &model.Category{
 				Id:          1,
 				Name:        "Bolls",
 				Description: "Bolls Description",
@@ -45,7 +45,7 @@ func TestGetCategoryById(t *testing.T) {
 			name:   "Invalid id",
 			param:  "abc",
 			mockOn: 1,
-			mockReturn: &model.Categories{
+			mockReturn: &model.Category{
 				Id:          1,
 				Name:        "Bolls",
 				Description: "Bolls Description",
@@ -57,7 +57,7 @@ func TestGetCategoryById(t *testing.T) {
 			name:   "not found",
 			param:  "999",
 			mockOn: 999,
-			mockReturn: &model.Categories{
+			mockReturn: &model.Category{
 				Id:          1,
 				Name:        "Bolls",
 				Description: "Bolls Description",
@@ -70,7 +70,7 @@ func TestGetCategoryById(t *testing.T) {
 			name:   "Server error",
 			param:  "1",
 			mockOn: 1,
-			mockReturn: &model.Categories{
+			mockReturn: &model.Category{
 				Id:          1,
 				Name:        "Bolls",
 				Description: "Bolls Description",

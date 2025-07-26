@@ -10,7 +10,11 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) GetCategory(ctx context.Context, id int64) (*model.Categories, error) {
+func (m *MockRepository) GetCategory(ctx context.Context, id int64) (*model.Category, error) {
 	args := m.Called(ctx, id)
-	return args.Get(0).(*model.Categories), args.Error(1)
+	return args.Get(0).(*model.Category), args.Error(1)
+}
+func (m *MockRepository) GetCategoriesAll(ctx context.Context) (*model.AllCategories, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(*model.AllCategories), args.Error(1)
 }

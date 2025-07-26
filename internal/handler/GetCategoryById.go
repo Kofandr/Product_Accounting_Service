@@ -22,7 +22,7 @@ func (handler *Handler) GetCategoryById(c echo.Context) error {
 		logg.Info("Invalid id", "err", err)
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
-	categories, err := handler.db.GetCategory(ctx, categoryId)
+	category, err := handler.db.GetCategory(ctx, categoryId)
 	if err != nil {
 
 		if errors.Is(err, sql.ErrNoRows) {
@@ -36,5 +36,5 @@ func (handler *Handler) GetCategoryById(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 
-	return c.JSON(http.StatusOK, categories)
+	return c.JSON(http.StatusOK, category)
 }
