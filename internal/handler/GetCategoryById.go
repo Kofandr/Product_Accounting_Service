@@ -16,7 +16,7 @@ func (handler *Handler) GetCategoryById(c echo.Context) error {
 
 	stringId := c.Param("id")
 
-	categoryId, err := strconv.ParseInt(stringId, 10, 64)
+	categoryId, err := strconv.Atoi(stringId)
 	if err != nil {
 		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)

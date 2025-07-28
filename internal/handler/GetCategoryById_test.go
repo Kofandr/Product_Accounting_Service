@@ -29,7 +29,7 @@ func TestGetCategoryById(t *testing.T) {
 		expectedBody   string
 	}{
 		{
-			name:   "Normal",
+			name:   "Valid Request",
 			param:  "1",
 			mockOn: 1,
 			mockReturn: &model.Category{

@@ -22,7 +22,7 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 		expectedBody   string
 	}{
 		{
-			name: "Default",
+			name: "Valid Request",
 			mockReturn: &model.AllCategories{
 				Categories: []model.Category{
 					{
