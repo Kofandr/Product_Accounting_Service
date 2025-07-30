@@ -81,3 +81,34 @@ func (pgxRepository *PgxRepository) CreateCategory(ctx context.Context, category
 	}
 	return id, err
 }
+
+func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, update *model.UpdateCategoryRequest) error {
+	query := `
+        UPDATE categories
+        SET
+            name = COALESCE($1, name),
+            description = COALESCE($2, description),
+            updated_at = NOW()
+        WHERE id = $3
+    `
+
+	var namePtr, descPtr interface{}
+	if update.Name != nil {
+		namePtr = *update.Name
+	} else {
+		namePtr = nil
+	}
+
+	if update.Description != nil {
+		descPtr = *update.Description
+	} else {
+		descPtr = nil
+	}
+
+	_, err := pgxRepository.db.Exec(ctx, query, namePtr, descPtr, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

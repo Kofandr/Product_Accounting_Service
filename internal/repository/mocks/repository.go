@@ -102,6 +102,24 @@ func (_m *Repository) GetCategory(ctx context.Context, id int) (*model.Category,
 	return r0, r1
 }
 
+// UpdateCategory provides a mock function with given fields: ctx, id, update
+func (_m *Repository) UpdateCategory(ctx context.Context, id int, update *model.UpdateCategoryRequest) error {
+	ret := _m.Called(ctx, id, update)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateCategory")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, *model.UpdateCategoryRequest) error); ok {
+		r0 = rf(ctx, id, update)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewRepository creates a new instance of Repository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewRepository(t interface {

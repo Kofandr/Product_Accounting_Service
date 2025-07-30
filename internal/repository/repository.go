@@ -15,6 +15,7 @@ type CategoryRepository interface {
 	GetCategory(ctx context.Context, id int) (*model.Category, error)
 	GetCategoriesAll(ctx context.Context) (*model.AllCategories, error)
 	CreateCategory(ctx context.Context, category *model.CreateCategoryRequest) (int, error)
+	UpdateCategory(ctx context.Context, id int, update *model.UpdateCategoryRequest) error
 }
 
 type ProductRepository interface {
