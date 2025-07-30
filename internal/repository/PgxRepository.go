@@ -112,3 +112,7 @@ func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, 
 
 	return nil
 }
+
+func (pgxRepository *PgxRepository) DeleteCategory(ctx context.Context, id int) error {
+	return nil
+}

@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"database/sql"
 	"fmt"
+	"github.com/Kofandr/Product_Accounting_Service/internal/errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 
@@ -16,8 +16,6 @@ import (
 
 	"testing"
 )
-
-var errN error = sql.ErrNoRows
 
 func TestGetCategoryById(t *testing.T) {
 	tests := []struct {
@@ -63,7 +61,7 @@ func TestGetCategoryById(t *testing.T) {
 				Name:        "Bolls",
 				Description: "Bolls Description",
 			},
-			mockErr:        errN,
+			mockErr:        errors.ErrDBNotFound,
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   `{"err": "Not found"}`,
 		},

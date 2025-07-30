@@ -42,6 +42,24 @@ func (_m *Repository) CreateCategory(ctx context.Context, category *model.Create
 	return r0, r1
 }
 
+// DeleteCategory provides a mock function with given fields: ctx, id
+func (_m *Repository) DeleteCategory(ctx context.Context, id int) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteCategory")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetCategoriesAll provides a mock function with given fields: ctx
 func (_m *Repository) GetCategoriesAll(ctx context.Context) (*model.AllCategories, error) {
 	ret := _m.Called(ctx)

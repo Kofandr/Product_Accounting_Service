@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/Kofandr/Product_Accounting_Service/internal/errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,7 @@ func TestUpdateCategory(t *testing.T) {
 			name:           "not found",
 			param:          "999",
 			mockOn:         999,
-			mockReturn:     errN,
+			mockReturn:     errors.ErrDBNotFound,
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   `{"err": "Not found"}`,
 		},
