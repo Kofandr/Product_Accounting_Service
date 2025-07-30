@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/Kofandr/Product_Accounting_Service/internal/testutils/mocks"
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
+
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -82,7 +83,7 @@ func TestGetCategoryById(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockBD := &mocks.MockRepository{}
+			mockBD := new(mocks.Repository)
 
 			c := echo.New()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
