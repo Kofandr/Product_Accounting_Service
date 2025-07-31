@@ -196,9 +196,9 @@ func (_m *Repository) GetProduct(ctx context.Context, id int) (*model.Product, e
 	return r0, r1
 }
 
-// GetProductsCategory provides a mock function with given fields: ctx
-func (_m *Repository) GetProductsCategory(ctx context.Context) (*model.ProductsCategory, error) {
-	ret := _m.Called(ctx)
+// GetProductsCategory provides a mock function with given fields: ctx, categoryId
+func (_m *Repository) GetProductsCategory(ctx context.Context, categoryId int) (*model.ProductsCategory, error) {
+	ret := _m.Called(ctx, categoryId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetProductsCategory")
@@ -206,19 +206,19 @@ func (_m *Repository) GetProductsCategory(ctx context.Context) (*model.ProductsC
 
 	var r0 *model.ProductsCategory
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) (*model.ProductsCategory, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, int) (*model.ProductsCategory, error)); ok {
+		return rf(ctx, categoryId)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) *model.ProductsCategory); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, int) *model.ProductsCategory); ok {
+		r0 = rf(ctx, categoryId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.ProductsCategory)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = rf(ctx, categoryId)
 	} else {
 		r1 = ret.Error(1)
 	}
