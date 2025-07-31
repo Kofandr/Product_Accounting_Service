@@ -86,9 +86,8 @@ func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, 
 	query := `
         UPDATE categories
         SET
-            name = COALESCE($1, name),
-            description = COALESCE($2, description),
-            updated_at = NOW()
+            name = COALESCE(NULLIF($1, ''), name),
+            description = COALESCE(NULLIF($2, ''), description)
         WHERE id = $3
     `
 
@@ -105,14 +104,30 @@ func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, 
 		descPtr = nil
 	}
 
-	_, err := pgxRepository.db.Exec(ctx, query, namePtr, descPtr, id)
+	result, err := pgxRepository.db.Exec(ctx, query, namePtr, descPtr, id)
 	if err != nil {
 		return err
+	}
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.ErrUnsupported
 	}
 
 	return nil
 }
 
 func (pgxRepository *PgxRepository) DeleteCategory(ctx context.Context, id int) error {
+	result, err := pgxRepository.db.Exec(ctx,
+		"DELETE FROM  categories WHERE id = $1",
+		id,
+	)
+	if err != nil {
+		return err
+	}
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.ErrUnsupported
+	}
+
 	return nil
 }

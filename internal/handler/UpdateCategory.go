@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"database/sql"
+	"errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
@@ -31,6 +33,12 @@ func (handler *Handler) UpdateCategory(c echo.Context) error {
 
 	err = handler.db.UpdateCategory(ctx, categoryId, &category)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			errResp := map[string]string{"err": "Not found"}
+			logg.Error("Not found id", "err", err)
+			return c.JSON(http.StatusNotFound, errResp)
+		}
+
 		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)
 		return c.JSON(http.StatusInternalServerError, errResp)
