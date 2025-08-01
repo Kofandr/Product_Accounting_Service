@@ -31,6 +31,12 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 	serverEcho.PATCH("/categories/:id", handler.UpdateCategory)
 	serverEcho.DELETE("/categories/:id", handler.DeleteCategory)
 
+	serverEcho.GET("/product/:id", handler.GetProduct)
+	serverEcho.GET("/products/:id", handler.GetProductsCategory)
+	serverEcho.POST("/product", handler.CreateProduct)
+	serverEcho.PATCH("/product/:id", handler.UpdateProduct)
+	serverEcho.DELETE("/product/:id", handler.DeleteProduct)
+
 	return &Server{serverEcho, (":" + strconv.Itoa(cfg.Port)), logg, db}
 }
 

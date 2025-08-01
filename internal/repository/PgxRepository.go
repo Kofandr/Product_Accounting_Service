@@ -136,7 +136,7 @@ func (pgxRepository *PgxRepository) DeleteCategory(ctx context.Context, id int) 
 func (pgxRepository *PgxRepository) GetProduct(ctx context.Context, id int) (*model.Product, error) {
 	var product model.Product
 	err := pgxRepository.db.QueryRow(ctx,
-		"SELECT id, name, amount, categoryId FROM products WHERE id = $1",
+		"SELECT id, name, amount, categoryid FROM products WHERE id = $1",
 		id,
 	).Scan(
 		&product.Id,
@@ -155,9 +155,9 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
             p.id, 
             p.name, 
             p.amount, 
-            p.category_id
+            p.categoryid
         FROM categories c
-        LEFT JOIN products p ON c.id = p.category_id
+        LEFT JOIN products p ON c.id = p.categoryid
         WHERE c.id = $1
     `
 
@@ -201,7 +201,7 @@ func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *
 	var id int
 
 	err := pgxRepository.db.QueryRow(ctx,
-		"INSERT INTO products (name, amount, categoryId) VALUES ($1, $2, $3) RETURNING id",
+		"INSERT INTO products (name, amount, categoryid) VALUES ($1, $2, $3) RETURNING id",
 		product.Name,
 		product.Amount,
 		product.CategoryId,
@@ -222,11 +222,11 @@ func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, u
 
 	query := `
         UPDATE products
-        SET
-            name = COALESCE(NULLIF($1, ''), name),
-            amount = COALESCE(NULLIF($2, ''), amount),
-            categoryId = COALESCE(NULLIF($3, ''), categoryId)
-        WHERE id = $4
+		SET
+    		name = COALESCE(NULLIF($1, ''), name),
+			amount = COALESCE(NULLIF($2, 0), amount),      -- 0 вместо ''
+    		categoryId = COALESCE(NULLIF($3, 0), categoryId) -- 0 вместо ''
+		WHERE id = $4
     `
 
 	var namePtr, descPtr, catPtr interface{}
