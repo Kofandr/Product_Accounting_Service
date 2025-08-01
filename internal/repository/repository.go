@@ -25,4 +25,5 @@ type ProductRepository interface {
 	CreateProduct(ctx context.Context, product *model.CreateProductRequest) (int, error)
 	UpdateProduct(ctx context.Context, id int, update *model.UpdateProductRequest) error
 	DeleteProduct(ctx context.Context, id int) error
+	CategoryExists(ctx context.Context, id int) (bool, error)
 }
