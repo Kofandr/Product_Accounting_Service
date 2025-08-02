@@ -2,9 +2,9 @@ package handler
 
 import (
 	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -36,7 +36,7 @@ func TestGetProduct(t *testing.T) {
 			},
 			mockErr:        nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id": 1, "name": "Bolls", "Amount": 1, "CategoryId": 1}`,
+			expectedBody:   `{"id": 1, "name": "Bolls", "amount": 1, "category_id": 1}`,
 		},
 		{
 			name:   "Invalid id",
@@ -61,7 +61,7 @@ func TestGetProduct(t *testing.T) {
 				Amount:     1,
 				CategoryId: 1,
 			},
-			mockErr:        errors.ErrDBNotFound,
+			mockErr:        pgx.ErrNoRows,
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   `{"err": "Not found"}`,
 		},
@@ -82,6 +82,7 @@ func TestGetProduct(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			mockBD := new(mocks.Repository)
 
 			c := echo.New()

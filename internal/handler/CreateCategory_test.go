@@ -50,6 +50,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
 			mockRepo := new(mocks.Repository)
 
@@ -59,6 +60,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 			rec := httptest.NewRecorder()
 			cT := c.NewContext(req, rec)
 			mockRepo.On("CreateCategory", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
+
 			handler := New(mockRepo)
 			handler.CreateCategory(cT)
 

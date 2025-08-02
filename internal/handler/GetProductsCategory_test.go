@@ -56,13 +56,13 @@ func TestGetProductsCategory(t *testing.T) {
 						"id":          1,
 						"name":        "Bolls",
 						"amount": 1,
-						"categoryId": 1
+						"category_id": 1
                     },
                     {
                         "id":          2,
 						"name":        "R",
 						"amount": 1,
-						"categoryId": 1
+						"category_id": 1
                     }
                 ]
             }`,
@@ -81,6 +81,7 @@ func TestGetProductsCategory(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			mockBD := new(mocks.Repository)
 			c := echo.New()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)

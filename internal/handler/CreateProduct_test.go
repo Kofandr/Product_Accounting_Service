@@ -27,7 +27,7 @@ func TestCreateProduct(t *testing.T) {
 	}{
 		{
 			name:                    "Valid Request",
-			inputJSON:               `{"name": "Name", "Amount": 0, "CategoryId": 1}`,
+			inputJSON:               `{"name": "Name", "amount": 0, "category_id": 1}`,
 			mockCategoryExistsOn:    1,
 			mockCategoryExistsBool:  true,
 			mockCategoryExistsError: nil,
@@ -38,7 +38,7 @@ func TestCreateProduct(t *testing.T) {
 		},
 		{
 			name:                    "Empty Name",
-			inputJSON:               `{"name": "", "Amount": , "CategoryId": }`,
+			inputJSON:               `{"name": "", "amount": , "category_id": }`,
 			mockCategoryExistsOn:    1,
 			mockCategoryExistsBool:  true,
 			mockCategoryExistsError: nil,
@@ -49,7 +49,7 @@ func TestCreateProduct(t *testing.T) {
 		},
 		{
 			name:                    "not found category",
-			inputJSON:               `{"name": "Name", "Amount": 0, "CategoryId": 999}`,
+			inputJSON:               `{"name": "Name", "amount": 0, "category_id": 999}`,
 			mockCategoryExistsOn:    999,
 			mockCategoryExistsBool:  false,
 			mockCategoryExistsError: nil,
@@ -60,7 +60,7 @@ func TestCreateProduct(t *testing.T) {
 		},
 		{
 			name:                    "Database Error",
-			inputJSON:               `{"name": "Name", "Amount": 0, "CategoryId": 1}`,
+			inputJSON:               `{"name": "Name", "amount": 0, "category_id": 1}`,
 			mockReturn:              0,
 			mockCategoryExistsOn:    1,
 			mockCategoryExistsBool:  true,
@@ -72,7 +72,7 @@ func TestCreateProduct(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
+			t.Parallel()
 			mockRepo := new(mocks.Repository)
 
 			c := echo.New()

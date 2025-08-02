@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
@@ -111,7 +110,7 @@ func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, 
 	}
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.ErrUnsupported
+		return pgx.ErrNoRows
 	}
 
 	return nil
@@ -127,7 +126,7 @@ func (pgxRepository *PgxRepository) DeleteCategory(ctx context.Context, id int) 
 	}
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.ErrUnsupported
+		return pgx.ErrNoRows
 	}
 
 	return nil
@@ -189,7 +188,7 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
 	}
 
 	if result.Category == "" {
-		return nil, sql.ErrNoRows
+		return nil, pgx.ErrNoRows
 	}
 
 	result.Products = products
@@ -254,7 +253,7 @@ func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, u
 	}
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.ErrUnsupported
+		return pgx.ErrNoRows
 	}
 
 	return nil
@@ -270,7 +269,7 @@ func (pgxRepository *PgxRepository) DeleteProduct(ctx context.Context, id int) e
 	}
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.ErrUnsupported
+		return pgx.ErrNoRows
 	}
 
 	return nil

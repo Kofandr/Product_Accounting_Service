@@ -66,6 +66,7 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			mockBD := new(mocks.Repository)
 			c := echo.New()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)

@@ -22,7 +22,7 @@ type Product struct {
 	Id         int    `json:"id" validate:"required,min=1"`
 	Name       string `json:"name" validate:"required,min=2,max=100"`
 	Amount     int    `json:"amount" validate:"required,min=0"`
-	CategoryId int    `json:"categoryId" validate:"required,min=1"`
+	CategoryId int    `json:"category_id" validate:"required,min=1"`
 }
 
 type ProductsCategory struct {
@@ -32,12 +32,12 @@ type ProductsCategory struct {
 
 type CreateProductRequest struct {
 	Name       string `json:"name" validate:"required,min=2,max=100"`
-	Amount     int    `json:"Amount" validate:"required,min=0"`
-	CategoryId int    `json:"CategoryId" validate:"required,min=1"`
+	Amount     int    `json:"amount" validate:"required,min=0"`
+	CategoryId int    `json:"category_id" validate:"required,min=1"`
 }
 
 type UpdateProductRequest struct {
 	Name       *string `json:"name,omitempty" validate:"omitempty,min=2,max=100"`
-	Amount     *int    `json:"Amount,omitempty" validate:"omitempty,min=0"`
-	CategoryId *int    `json:"CategoryId,omitempty" validate:"omitempty,min=1"`
+	Amount     *int    `json:"amount,omitempty" validate:"omitempty,min=0"`
+	CategoryId *int    `json:"category_id,omitempty" validate:"omitempty,min=1"`
 }

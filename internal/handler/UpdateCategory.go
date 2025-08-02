@@ -1,13 +1,12 @@
 package handler
 
 import (
-	"database/sql"
 	"errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) UpdateCategory(c echo.Context) error {
@@ -15,13 +14,10 @@ func (handler *Handler) UpdateCategory(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	categoryId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
 	var category model.UpdateCategoryRequest
@@ -31,9 +27,9 @@ func (handler *Handler) UpdateCategory(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 
-	err = handler.db.UpdateCategory(ctx, categoryId, &category)
+	err = handler.db.UpdateCategory(ctx, id, &category)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
 			logg.Error("Not found id", "err", err)
 			return c.JSON(http.StatusNotFound, errResp)
