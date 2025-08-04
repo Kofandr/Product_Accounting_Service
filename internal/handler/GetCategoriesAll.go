@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func (handler *Handler) GetCategoriesAll(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 

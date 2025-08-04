@@ -2,14 +2,14 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func (handler *Handler) GetProductsCategory(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 	ctx := c.Request().Context()
 
 	id, err := parseIDParam(c)

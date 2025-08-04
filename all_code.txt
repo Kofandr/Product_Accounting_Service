@@ -142,25 +142,23 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) GetProductsCategory(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 	ctx := c.Request().Context()
 
-	categoryId, err := strconv.Atoi(c.Param("id"))
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
-	products, err := handler.db.GetProductsCategory(ctx, categoryId)
+	products, err := handler.db.GetProductsCategory(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found category"}
@@ -179,13 +177,13 @@ func (handler *Handler) GetProductsCategory(c echo.Context) error {
 package handler
 
 import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func (handler *Handler) GetCategoriesAll(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
@@ -444,26 +442,22 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) UpdateCategory(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	categoryId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
 	var category model.UpdateCategoryRequest
@@ -472,8 +466,13 @@ func (handler *Handler) UpdateCategory(c echo.Context) error {
 		logg.Error("Invalid JSON received")
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
+	if err := c.Validate(category); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received")
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
 
-	err = handler.db.UpdateCategory(ctx, categoryId, &category)
+	err = handler.db.UpdateCategory(ctx, id, &category)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
@@ -661,26 +660,22 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler Handler) UpdateProduct(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	productId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
 	var product model.UpdateProductRequest
@@ -689,8 +684,13 @@ func (handler Handler) UpdateProduct(c echo.Context) error {
 		logg.Error("Invalid JSON received")
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
+	if err := c.Validate(product); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received")
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
 
-	err = handler.db.UpdateProduct(ctx, productId, &product)
+	err = handler.db.UpdateProduct(ctx, id, &product)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
@@ -814,7 +814,10 @@ func TestGetProductsCategory(t *testing.T) {
 package handler
 
 import (
+	"fmt"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
+	"github.com/labstack/echo/v4"
+	"strconv"
 )
 
 type Handler struct {
@@ -826,23 +829,37 @@ func New(db repository.Repository) *Handler {
 		db,
 	}
 }
+
+func parseIDParam(c echo.Context) (int, error) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid id: %w", err)
+	}
+	return id, nil
+}
 ==================== ./internal/handler/CreateProduct.go ====================
 package handler
 
 import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func (handler *Handler) CreateProduct(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
 	var product model.CreateProductRequest
 	if err := c.Bind(&product); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received")
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
+	if err := c.Validate(product); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received")
 		return c.JSON(http.StatusBadRequest, errResp)
@@ -876,27 +893,24 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) GetCategoryById(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	categoryId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
-	category, err := handler.db.GetCategory(ctx, categoryId)
+
+	category, err := handler.db.GetCategory(ctx, id)
 	if err != nil {
 
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -975,6 +989,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 			rec := httptest.NewRecorder()
 			cT := c.NewContext(req, rec)
 			mockRepo.On("CreateCategory", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
+
 			handler := New(mockRepo)
 			handler.CreateCategory(cT)
 
@@ -990,28 +1005,24 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) GetProduct(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	productId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
-	product, err := handler.db.GetProduct(ctx, productId)
+
+	product, err := handler.db.GetProduct(ctx, id)
 	if err != nil {
 
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -1135,14 +1146,14 @@ func TestGetCategoryById(t *testing.T) {
 package handler
 
 import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func (handler *Handler) CreateCategory(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
@@ -1152,7 +1163,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 		logg.Error("Invalid JSON received")
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
-	if category.Name == "" || category.Description == "" {
+	if err := c.Validate(category); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received")
 		return c.JSON(http.StatusBadRequest, errResp)
@@ -1269,28 +1280,24 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) DeleteCategory(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	categoryId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
-	err = handler.db.DeleteCategory(ctx, categoryId)
+	err = handler.db.DeleteCategory(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
@@ -1311,28 +1318,24 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) DeleteProduct(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
-	stringId := c.Param("id")
-
-	productId, err := strconv.Atoi(stringId)
+	id, err := parseIDParam(c)
 	if err != nil {
-		errResp := map[string]string{"err": "Invalid id"}
 		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, errResp)
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
-	err = handler.db.DeleteProduct(ctx, productId)
+	err = handler.db.DeleteProduct(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
@@ -1448,7 +1451,7 @@ func (server *Server) Shutdown(ctx context.Context) error {
 package middleware
 
 import (
-	"context"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"log/slog"
@@ -1466,7 +1469,7 @@ func RequestLogger(logg *slog.Logger) echo.MiddlewareFunc {
 
 			ctx := c.Request().Context()
 
-			ctx = context.WithValue(ctx, CtxLoggerKey{}, reqLog)
+			ctx = appctx.WithLogger(ctx, reqLog)
 
 			c.SetRequest(c.Request().WithContext(ctx))
 
@@ -1541,6 +1544,30 @@ func Mustload() *Configuration {
 		log.Fatalf("failed to load config: %v", err)
 	}
 	return cfg
+}
+==================== ./internal/appctx/logger.go ====================
+package appctx
+
+import (
+	"context"
+	"log/slog"
+)
+
+type loggerKeyType struct{}
+
+func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {
+	return context.WithValue(ctx, loggerKeyType{}, logger)
+}
+
+func LoggerFromContext(ctx context.Context) *slog.Logger {
+	val := ctx.Value(loggerKeyType{})
+
+	logg, ok := val.(*slog.Logger)
+	if !ok || logg == nil {
+		return slog.Default()
+	}
+
+	return logg
 }
 ==================== ./internal/errors/errors.go ====================
 package errors

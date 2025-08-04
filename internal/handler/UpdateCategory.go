@@ -2,7 +2,7 @@ package handler
 
 import (
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -10,7 +10,7 @@ import (
 )
 
 func (handler *Handler) UpdateCategory(c echo.Context) error {
-	logg := logger.MustLoggerFromCtx(c.Request().Context())
+	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	ctx := c.Request().Context()
 
@@ -22,6 +22,11 @@ func (handler *Handler) UpdateCategory(c echo.Context) error {
 
 	var category model.UpdateCategoryRequest
 	if err := c.Bind(&category); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received")
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
+	if err := c.Validate(category); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received")
 		return c.JSON(http.StatusBadRequest, errResp)

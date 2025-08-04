@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"context"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"log/slog"
@@ -19,7 +19,7 @@ func RequestLogger(logg *slog.Logger) echo.MiddlewareFunc {
 
 			ctx := c.Request().Context()
 
-			ctx = context.WithValue(ctx, CtxLoggerKey{}, reqLog)
+			ctx = appctx.WithLogger(ctx, reqLog)
 
 			c.SetRequest(c.Request().WithContext(ctx))
 
