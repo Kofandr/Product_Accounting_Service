@@ -15,12 +15,12 @@ func (handler *Handler) CreateProduct(c echo.Context) error {
 	var product model.CreateProductRequest
 	if err := c.Bind(&product); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
+		logg.Error("Invalid JSON received", "err", err)
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	if err := c.Validate(product); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
+		logg.Error("Invalid JSON received", "err", err)
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 

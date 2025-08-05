@@ -1569,12 +1569,6 @@ func LoggerFromContext(ctx context.Context) *slog.Logger {
 
 	return logg
 }
-==================== ./internal/errors/errors.go ====================
-package errors
-
-import "database/sql"
-
-var ErrDBNotFound = sql.ErrNoRows
 ==================== ./internal/repository/PgxRepository.go ====================
 package repository
 
