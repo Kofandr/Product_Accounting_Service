@@ -2,7 +2,6 @@ package handler
 
 import (
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/Kofandr/Product_Accounting_Service/internal/errors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -15,21 +14,21 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 
 	var category model.CreateCategoryRequest
 	if err := c.Bind(&category); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received")
-		resp := errors.MapErrorToResponse(err)
-		return c.JSON(resp.Status, resp.Message)
+		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	if err := c.Validate(category); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received")
-		resp := errors.MapErrorToResponse(err)
-		return c.JSON(resp.Status, resp.Message)
+		return c.JSON(http.StatusBadRequest, errResp)
 	}
 
 	id, err := handler.db.CreateCategory(ctx, &category)
 	if err != nil {
+		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)
-		resp := errors.MapErrorToResponse(err)
-		return c.JSON(resp.Status, resp.Message)
+		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
