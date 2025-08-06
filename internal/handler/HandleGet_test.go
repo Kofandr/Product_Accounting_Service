@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestHandleGet(t *testing.T) {
+func TestHandlerGet(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string

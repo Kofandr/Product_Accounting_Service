@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func HandleGet[T any](
+func HandlerGet[T any](
 	c echo.Context,
 	getFunc func(context.Context, int) (T, error),
 	entity string,
@@ -49,9 +49,8 @@ func HandleGet[T any](
 	return c.JSON(http.StatusOK, model)
 }
 
-// Использование:
 func (h *Handler) GetProduct(c echo.Context) error {
-	return HandleGet(
+	return HandlerGet(
 		c,
 		h.db.GetProduct,
 		"Product",
@@ -61,7 +60,7 @@ func (h *Handler) GetProduct(c echo.Context) error {
 }
 
 func (h *Handler) GetCategoryById(c echo.Context) error {
-	return HandleGet(
+	return HandlerGet(
 		c,
 		h.db.GetCategory,
 		"Category",
@@ -71,7 +70,7 @@ func (h *Handler) GetCategoryById(c echo.Context) error {
 }
 
 func (h *Handler) GetProductsCategory(c echo.Context) error {
-	return HandleGet(
+	return HandlerGet(
 		c,
 		h.db.GetProductsCategory,
 		"ProductsCategory",

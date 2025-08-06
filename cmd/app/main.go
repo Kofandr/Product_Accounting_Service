@@ -31,7 +31,6 @@ func main() {
 	go func() {
 		if err := mainServer.Start(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server crash")
-
 		}
 	}()
 
@@ -49,5 +48,4 @@ func main() {
 	} else {
 		logg.Info("Server stopped")
 	}
-
 }

@@ -34,6 +34,7 @@ func (pgxRepository *PgxRepository) GetCategory(ctx context.Context, id int) (*m
 		&categories.Name,
 		&categories.Description,
 	)
+
 	return &categories, err
 }
 

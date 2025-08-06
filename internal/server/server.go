@@ -46,10 +46,12 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 
 func (server *Server) Start() error {
 	server.logg.Info("Starting server", "addr", server.addr)
+
 	return server.echo.Start(server.addr)
 }
 
 func (server *Server) Shutdown(ctx context.Context) error {
 	server.logg.Info("Shutting down server")
+
 	return server.echo.Shutdown(ctx)
 }

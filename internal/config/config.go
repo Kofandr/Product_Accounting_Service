@@ -40,5 +40,6 @@ func Mustload() *Configuration {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
+
 	return cfg
 }
