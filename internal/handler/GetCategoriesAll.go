@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func (handler *Handler) GetCategoriesAll(c echo.Context) error {

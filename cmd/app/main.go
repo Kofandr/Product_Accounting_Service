@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
-	"github.com/Kofandr/Product_Accounting_Service/internal/config"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
-	"github.com/Kofandr/Product_Accounting_Service/internal/server"
-	"github.com/jackc/pgx/v5"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/config"
+	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/server"
+	"github.com/jackc/pgx/v5"
 )
 
 func main() {

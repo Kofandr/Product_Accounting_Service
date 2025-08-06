@@ -3,14 +3,15 @@ package handler
 import (
 	"bytes"
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestCreateProduct(t *testing.T) {

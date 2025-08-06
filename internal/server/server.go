@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"log/slog"
+	"strconv"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/config"
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler/appValidator"
@@ -10,8 +13,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"log/slog"
-	"strconv"
 )
 
 type Server struct {

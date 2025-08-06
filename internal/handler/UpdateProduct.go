@@ -2,11 +2,12 @@ package handler
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func (handler Handler) UpdateProduct(c echo.Context) error {

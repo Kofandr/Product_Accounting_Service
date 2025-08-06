@@ -2,9 +2,10 @@ package logger
 
 import (
 	"context"
-	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
 	"log/slog"
 	"os"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
 )
 
 func New(level string) *slog.Logger {

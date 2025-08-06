@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/caarlos0/env/v8"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
-	"log"
 )
 
 type Configuration struct {

@@ -1,11 +1,12 @@
 package middleware
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"log/slog"
-	"time"
 )
 
 type CtxLoggerKey struct {

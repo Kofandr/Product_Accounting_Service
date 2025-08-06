@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -29,7 +30,7 @@ func (pgxRepository *PgxRepository) GetCategory(ctx context.Context, id int) (*m
 		"SELECT id, name, description FROM categories WHERE id = $1",
 		id,
 	).Scan(
-		&categories.Id,
+		&categories.ID,
 		&categories.Name,
 		&categories.Description,
 	)
@@ -49,7 +50,7 @@ func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*mode
 	for rows.Next() {
 		var c model.Category
 
-		if err := rows.Scan(&c.Id, &c.Name, &c.Description); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}
 		categories = append(categories, c)
@@ -138,10 +139,10 @@ func (pgxRepository *PgxRepository) GetProduct(ctx context.Context, id int) (*mo
 		"SELECT id, name, amount, categoryid FROM products WHERE id = $1",
 		id,
 	).Scan(
-		&product.Id,
+		&product.ID,
 		&product.Name,
 		&product.Amount,
-		&product.CategoryId,
+		&product.CategoryID,
 	)
 
 	return &product, err
@@ -173,10 +174,10 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
 		var p model.Product
 		if err := rows.Scan(
 			&result.Category,
-			&p.Id,
+			&p.ID,
 			&p.Name,
 			&p.Amount,
-			&p.CategoryId,
+			&p.CategoryID,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
@@ -203,7 +204,7 @@ func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *
 		"INSERT INTO products (name, amount, categoryid) VALUES ($1, $2, $3) RETURNING id",
 		product.Name,
 		product.Amount,
-		product.CategoryId,
+		product.CategoryID,
 	).Scan(&id)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
@@ -241,8 +242,8 @@ func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, u
 		descPtr = nil
 	}
 
-	if update.CategoryId != nil {
-		catPtr = *update.CategoryId
+	if update.CategoryID != nil {
+		catPtr = *update.CategoryID
 	} else {
 		catPtr = nil
 	}

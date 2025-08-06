@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func (handler *Handler) CreateCategory(c echo.Context) error {

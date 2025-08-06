@@ -2,16 +2,18 @@ package handler
 
 import (
 	"fmt"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestHandlerGetCategoriesAll(t *testing.T) {
@@ -27,12 +29,12 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 			mockReturn: &model.AllCategories{
 				Categories: []model.Category{
 					{
-						Id:          1,
+						ID:          1,
 						Name:        "Bolls",
 						Description: "Bolls Description",
 					},
 					{
-						Id:          2,
+						ID:          2,
 						Name:        "R",
 						Description: "R 00000000000000",
 					},

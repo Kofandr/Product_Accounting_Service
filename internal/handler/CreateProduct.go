@@ -24,7 +24,7 @@ func (handler *Handler) CreateProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 
-	be, err := handler.db.CategoryExists(ctx, product.CategoryId)
+	be, err := handler.db.CategoryExists(ctx, product.CategoryID)
 	if err != nil {
 		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)

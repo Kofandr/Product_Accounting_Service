@@ -5,7 +5,7 @@ type AllCategories struct {
 }
 
 type Category struct {
-	Id          int    `json:"id" example:"4"`
+	ID          int    `json:"id" example:"4"`
 	Name        string `json:"name" example:"Name"`
 	Description string `json:"description" example:"Description"`
 }
@@ -19,10 +19,10 @@ type UpdateCategoryRequest struct {
 }
 
 type Product struct {
-	Id         int    `json:"id" validate:"required,min=1"`
+	ID         int    `json:"id" validate:"required,min=1"`
 	Name       string `json:"name" validate:"required,min=2,max=100"`
 	Amount     int    `json:"amount" validate:"required,min=0"`
-	CategoryId int    `json:"category_id" validate:"required,min=1"`
+	CategoryID int    `json:"category_id" validate:"required,min=1"`
 }
 
 type ProductsCategory struct {
@@ -33,11 +33,11 @@ type ProductsCategory struct {
 type CreateProductRequest struct {
 	Name       string `json:"name" validate:"required,min=2,max=100"`
 	Amount     int    `json:"amount" validate:"required,min=0"`
-	CategoryId int    `json:"category_id" validate:"required,min=1"`
+	CategoryID int    `json:"category_id" validate:"required,min=1"`
 }
 
 type UpdateProductRequest struct {
 	Name       *string `json:"name,omitempty" validate:"omitempty,min=2,max=100"`
 	Amount     *int    `json:"amount,omitempty" validate:"omitempty,min=0"`
-	CategoryId *int    `json:"category_id,omitempty" validate:"omitempty,min=1"`
+	CategoryID *int    `json:"category_id,omitempty" validate:"omitempty,min=1"`
 }
