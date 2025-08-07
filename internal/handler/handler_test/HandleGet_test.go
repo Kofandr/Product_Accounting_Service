@@ -1,12 +1,13 @@
 package handler_test
 
 import (
-	"github.com/jackc/pgx/v5"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/stretchr/testify/require"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
@@ -16,18 +17,43 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type setCaseGet struct {
+	name         string
+	param        string
+	mockID       int
+	mockModel    interface{}
+	mockReturn   error
+	expectedCode int
+	expectedBody string
+}
+
+func runGetTest(t *testing.T, test setCaseGet, methodName string, methodFunc handlerFunc) {
+	t.Helper()
+
+	c := echo.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/"+test.param, nil)
+	rec := httptest.NewRecorder()
+	echoCtx := c.NewContext(req, rec)
+	echoCtx.SetParamNames("id")
+	echoCtx.SetParamValues(test.param)
+
+	mockDB := new(mocks.Repository)
+	mockDB.On(methodName, mock.Anything, test.mockID).Return(test.mockModel, test.mockReturn)
+
+	handler := handler.New(mockDB)
+	err := methodFunc(handler, echoCtx)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, test.expectedCode, rec.Code)
+	assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+}
+
 func TestGetCategoryByID(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		mockID       int
-		mockModel    *model.Category
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseGet{
 		{
 			name:   "Success",
 			param:  "1",
@@ -55,24 +81,7 @@ func TestGetCategoryByID(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/categories/"+test.param, nil)
-			rec := httptest.NewRecorder()
-			echoCtx := e.NewContext(req, rec)
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-
-			mockDB := new(mocks.Repository)
-			mockDB.On("GetCategory", mock.Anything, test.mockID).Return(test.mockModel, test.mockReturn)
-
-			h := handler.New(mockDB)
-			err := h.GetCategoryByID(echoCtx)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+			runGetTest(t, test, "GetCategory", (*handler.Handler).GetCategoryByID)
 		})
 	}
 }
@@ -80,15 +89,7 @@ func TestGetCategoryByID(t *testing.T) {
 func TestGetProduct(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		mockID       int
-		mockModel    *model.Product
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseGet{
 		{
 			name:   "Success",
 			param:  "1",
@@ -117,24 +118,7 @@ func TestGetProduct(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/product/"+test.param, nil)
-			rec := httptest.NewRecorder()
-			echoCtx := e.NewContext(req, rec)
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-
-			mockDB := new(mocks.Repository)
-			mockDB.On("GetProduct", mock.Anything, test.mockID).Return(test.mockModel, test.mockReturn)
-
-			h := handler.New(mockDB)
-			err := h.GetProduct(echoCtx)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+			runGetTest(t, test, "GetProduct", (*handler.Handler).GetProduct)
 		})
 	}
 }
@@ -142,15 +126,7 @@ func TestGetProduct(t *testing.T) {
 func TestGetProductsCategory(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		mockID       int
-		mockModel    *model.ProductsCategory
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseGet{
 		{
 			name:   "Success",
 			param:  "1",
@@ -207,23 +183,7 @@ func TestGetProductsCategory(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/products/"+test.param, nil)
-			rec := httptest.NewRecorder()
-			echoCtx := e.NewContext(req, rec)
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-
-			mockDB := new(mocks.Repository)
-			mockDB.On("GetProductsCategory", mock.Anything, test.mockID).Return(test.mockModel, test.mockReturn)
-
-			h := handler.New(mockDB)
-			err := h.GetProductsCategory(echoCtx)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+			runGetTest(t, test, "GetProductsCategory", (*handler.Handler).GetProductsCategory)
 		})
 	}
 }

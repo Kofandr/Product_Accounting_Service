@@ -1,13 +1,14 @@
 package handler_test
 
 import (
-	"github.com/jackc/pgx/v5"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/stretchr/testify/require"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
@@ -16,17 +17,49 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type setCaseDelete struct {
+	name         string
+	param        string
+	mockID       int
+	mockReturn   error
+	expectedCode int
+	expectedBody string
+}
+
+func runDeleteTest(t *testing.T, test setCaseDelete, methodName string, methodFunc handlerFunc) {
+	t.Helper()
+
+	c := echo.New()
+
+	req := httptest.NewRequest(http.MethodDelete, "/"+test.param, nil)
+	rec := httptest.NewRecorder()
+	echoCtx := c.NewContext(req, rec)
+	echoCtx.SetParamNames("id")
+	echoCtx.SetParamValues(test.param)
+
+	mockDB := new(mocks.Repository)
+
+	if _, err := strconv.Atoi(test.param); err == nil {
+		mockDB.On(methodName, mock.Anything, test.mockID).Return(test.mockReturn)
+	}
+
+	handler := handler.New(mockDB)
+	err := methodFunc(handler, echoCtx)
+
+	require.NoError(t, err)
+
+	assert.Equal(t, test.expectedCode, rec.Code)
+	assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+
+	if test.mockID > 0 {
+		mockDB.AssertExpectations(t)
+	}
+}
+
 func TestDeleteCategory(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		mockID       int
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseDelete{
 		{
 			name:         "Success",
 			param:        "1",
@@ -54,31 +87,7 @@ func TestDeleteCategory(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodDelete, "/categories/"+test.param, nil)
-			rec := httptest.NewRecorder()
-			echoCtx := e.NewContext(req, rec)
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-
-			mockDB := new(mocks.Repository)
-
-			if _, err := strconv.Atoi(test.param); err == nil {
-				mockDB.On("DeleteCategory", mock.Anything, test.mockID).Return(test.mockReturn)
-			}
-
-			h := handler.New(mockDB)
-			err := h.DeleteCategory(echoCtx)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
-			if test.mockID > 0 {
-				mockDB.AssertExpectations(t)
-			}
+			runDeleteTest(t, test, "DeleteCategory", (*handler.Handler).DeleteCategory)
 		})
 	}
 }
@@ -86,14 +95,7 @@ func TestDeleteCategory(t *testing.T) {
 func TestDeleteProduct(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		mockID       int
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseDelete{
 		{
 			name:         "Success",
 			param:        "1",
@@ -121,31 +123,7 @@ func TestDeleteProduct(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodDelete, "/product/"+test.param, nil)
-			rec := httptest.NewRecorder()
-			echoCtx := e.NewContext(req, rec)
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-
-			mockDB := new(mocks.Repository)
-
-			if _, err := strconv.Atoi(test.param); err == nil {
-				mockDB.On("DeleteProduct", mock.Anything, test.mockID).Return(test.mockReturn)
-			}
-
-			h := handler.New(mockDB)
-			err := h.DeleteProduct(echoCtx)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
-			if test.mockID > 0 {
-				mockDB.AssertExpectations(t)
-			}
+			runDeleteTest(t, test, "DeleteProduct", (*handler.Handler).DeleteProduct)
 		})
 	}
 }

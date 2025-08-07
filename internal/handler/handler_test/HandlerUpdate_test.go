@@ -1,6 +1,8 @@
 package handler_test
 
 import (
+	"strings"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
@@ -8,37 +10,70 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"strings"
 
 	// ... импорты ...
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/jackc/pgx/v5"
+	"github.com/labstack/echo/v4"
 )
+
+type handlerFunc func(*handler.Handler, echo.Context) error
+type setCaseUpdate struct {
+	name         string
+	param        string
+	requestBody  string
+	mockID       int
+	mockRequest  interface{}
+	mockReturn   error
+	expectedCode int
+	expectedBody string
+}
 
 func stringPtr(s string) *string { return &s }
 func intPtr(i int) *int          { return &i }
 
-func runDeleteTest() {
+func runUpdateTest(t *testing.T, test setCaseUpdate, methodName string, methodFunc handlerFunc) {
+	t.Helper()
 
+	e := echo.New()
+
+	req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.requestBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+
+	echoCtx := e.NewContext(req, rec)
+
+	echoCtx.SetParamNames("id")
+	echoCtx.SetParamValues(test.param)
+
+	e.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
+
+	mockDB := new(mocks.Repository)
+	if test.mockRequest != nil {
+		mockDB.On(methodName, mock.Anything, test.mockID, test.mockRequest).Return(test.mockReturn)
+	}
+
+	handler := handler.New(mockDB)
+	err := methodFunc(handler, echoCtx)
+
+	require.NoError(t, err)
+	assert.Equal(t, test.expectedCode, rec.Code)
+	assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+
+	if test.mockRequest != nil {
+		mockDB.AssertExpectations(t)
+	}
 }
 
 func TestUpdateCategory(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		requestBody  string
-		mockID       int
-		mockRequest  *model.UpdateCategoryRequest
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseUpdate{
 		{
 			name:        "Success",
 			param:       "1",
@@ -83,34 +118,7 @@ func TestUpdateCategory(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-
-			e := echo.New()
-
-			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.requestBody))
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			rec := httptest.NewRecorder()
-
-			echoCtx := e.NewContext(req, rec)
-
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-
-			e.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
-
-			mockDB := new(mocks.Repository)
-			if test.mockRequest != nil {
-				mockDB.On("UpdateCategory", mock.Anything, test.mockID, test.mockRequest).Return(test.mockReturn)
-			}
-
-			handler := handler.New(mockDB)
-			err := handler.UpdateCategory(echoCtx)
-			require.NoError(t, err)
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
-			if test.mockRequest != nil {
-				mockDB.AssertExpectations(t)
-			}
+			runUpdateTest(t, test, "UpdateCategory", (*handler.Handler).UpdateCategory)
 		})
 	}
 }
@@ -118,16 +126,7 @@ func TestUpdateCategory(t *testing.T) {
 func TestUpdateProduct(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name         string
-		param        string
-		requestBody  string
-		mockID       int
-		mockRequest  *model.UpdateProductRequest
-		mockReturn   error
-		expectedCode int
-		expectedBody string
-	}{
+	tests := []setCaseUpdate{
 		{
 			name:        "Success",
 			param:       "2",
@@ -173,30 +172,7 @@ func TestUpdateProduct(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.requestBody))
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			rec := httptest.NewRecorder()
-			echoCtx := e.NewContext(req, rec)
-			echoCtx.SetParamNames("id")
-			echoCtx.SetParamValues(test.param)
-			e.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
-
-			mockDB := new(mocks.Repository)
-			if test.mockRequest != nil {
-				mockDB.On("UpdateProduct", mock.Anything, test.mockID, test.mockRequest).Return(test.mockReturn)
-			}
-
-			handler := handler.New(mockDB)
-			err := handler.UpdateProduct(echoCtx)
-			require.NoError(t, err)
-			assert.Equal(t, test.expectedCode, rec.Code)
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
-			if test.mockRequest != nil {
-				mockDB.AssertExpectations(t)
-			}
+			runUpdateTest(t, test, "UpdateProduct", (*handler.Handler).UpdateProduct)
 		})
 	}
 }
