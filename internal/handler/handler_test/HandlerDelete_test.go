@@ -1,8 +1,11 @@
 package handler_test
 
 import (
+	"github.com/jackc/pgx/v5"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,62 +16,136 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestDeleteHandlers(t *testing.T) {
+func TestDeleteCategory(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name         string
-		method       func(*handler.Handler, echo.Context) error
 		param        string
-		mockMethod   string
-		mockOn       int
+		mockID       int
 		mockReturn   error
 		expectedCode int
 		expectedBody string
 	}{
 		{
-			name:         "DeleteCategory_Success",
-			method:       (*handler.Handler).DeleteCategory,
+			name:         "Success",
 			param:        "1",
-			mockOn:       1,
-			mockMethod:   "DeleteCategory",
+			mockID:       1,
 			mockReturn:   nil,
 			expectedCode: http.StatusOK,
 			expectedBody: `{"message":"Category deleted"}`,
 		},
 		{
-			name:         "DeleteProduct_Success",
-			method:       (*handler.Handler).DeleteProduct,
-			param:        "1",
-			mockMethod:   "DeleteProduct",
-			mockOn:       1,
-			mockReturn:   nil,
-			expectedCode: http.StatusOK,
-			expectedBody: `{"message":"Product deleted"}`,
+			name:         "NotFound",
+			param:        "999",
+			mockID:       999,
+			mockReturn:   pgx.ErrNoRows,
+			expectedCode: http.StatusNotFound,
+			expectedBody: `{"err":"Not found"}`,
+		},
+		{
+			name:         "InvalidID",
+			param:        "invalid",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"err":"Invalid ID"}`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			e := echo.New()
-			req := httptest.NewRequest(http.MethodDelete, "/"+test.param, nil)
+			req := httptest.NewRequest(http.MethodDelete, "/categories/"+test.param, nil)
 			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-			c.SetParamNames("id")
-			c.SetParamValues(test.param)
+			echoCtx := e.NewContext(req, rec)
+			echoCtx.SetParamNames("id")
+			echoCtx.SetParamValues(test.param)
 
-			mockBD := new(mocks.Repository)
-			mockBD.On(test.mockMethod, mock.Anything, test.mockOn).Return(test.mockReturn)
-			handler := handler.New(mockBD)
+			mockDB := new(mocks.Repository)
 
-			if err := test.method(handler, c); err != nil {
-				t.Errorf("Unexpected error: %v", err)
+			if _, err := strconv.Atoi(test.param); err == nil {
+				mockDB.On("DeleteCategory", mock.Anything, test.mockID).Return(test.mockReturn)
 			}
 
-			assert.Equal(t, test.expectedCode, rec.Code)
+			h := handler.New(mockDB)
+			err := h.DeleteCategory(echoCtx)
 
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, rec.Code)
 			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
 
+			if test.mockID > 0 {
+				mockDB.AssertExpectations(t)
+			}
 		})
 	}
+}
 
+func TestDeleteProduct(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		param        string
+		mockID       int
+		mockReturn   error
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "Success",
+			param:        "1",
+			mockID:       1,
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"message":"Product deleted"}`,
+		},
+		{
+			name:         "NotFound",
+			param:        "999",
+			mockID:       999,
+			mockReturn:   pgx.ErrNoRows,
+			expectedCode: http.StatusNotFound,
+			expectedBody: `{"err":"Not found"}`,
+		},
+		{
+			name:         "InvalidID",
+			param:        "invalid",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"err":"Invalid ID"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodDelete, "/product/"+test.param, nil)
+			rec := httptest.NewRecorder()
+			echoCtx := e.NewContext(req, rec)
+			echoCtx.SetParamNames("id")
+			echoCtx.SetParamValues(test.param)
+
+			mockDB := new(mocks.Repository)
+
+			if _, err := strconv.Atoi(test.param); err == nil {
+				mockDB.On("DeleteProduct", mock.Anything, test.mockID).Return(test.mockReturn)
+			}
+
+			h := handler.New(mockDB)
+			err := h.DeleteProduct(echoCtx)
+
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, rec.Code)
+			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+
+			if test.mockID > 0 {
+				mockDB.AssertExpectations(t)
+			}
+		})
+	}
 }

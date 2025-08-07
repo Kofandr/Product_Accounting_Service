@@ -2,19 +2,17 @@ package config
 
 import (
 	"fmt"
-	"log"
-	"time"
-
 	"github.com/caarlos0/env/v8"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
+	"log"
 )
 
 type Configuration struct {
-	Port             int           `env:"PORT" envdefault:"8080" validate:"required,min=1,max=65535"`
-	LoggerLevel      string        `env:"LOGGER_LEVEL" envdefault:"INFO" validate:"required,oneof=DEBUG INFO WARN ERROR"`
-	DatabaseURL      string        `env:"DATABASE_URL" validate:"required"`
-	ShuttingDowntime time.Duration `env:"SHUTTING_DOWN_TIME" envdefault:"5" validate:"required,min=5,max=600"`
+	Port             int    `env:"PORT"               envdefault:"8080"   validate:"required,min=1,max=65535"`
+	LoggerLevel      string `env:"LOGGER_LEVEL"       envdefault:"INFO"   validate:"required,oneof=DEBUG INFO WARN ERROR"`
+	DatabaseURL      string `env:"DATABASE_URL"       validate:"required"`
+	ShuttingDowntime int    `env:"SHUTTING_DOWN_TIME" envdefault:"5"      validate:"required,min=5,max=600"`
 }
 
 func Load() (*Configuration, error) {
@@ -34,13 +32,12 @@ func Load() (*Configuration, error) {
 	}
 
 	return cfg, nil
-
 }
 
 func Mustload() *Configuration {
 	cfg, err := Load()
 	if err != nil {
-		log.Fatalf("failed to load config: %w", err)
+		log.Fatalf("failed to load config: %v", err)
 	}
 
 	return cfg

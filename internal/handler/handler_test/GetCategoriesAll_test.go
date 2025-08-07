@@ -1,4 +1,4 @@
-package handler
+package handler_test
 
 import (
 	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
@@ -19,6 +19,7 @@ import (
 
 func TestHandlerGetCategoriesAll(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name           string
 		mockReturn     *model.AllCategories
@@ -71,14 +72,21 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
+
 			mockBD := new(mocks.Repository)
+
 			c := echo.New()
+
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
+
 			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
+
+			echoCtx := c.NewContext(req, rec)
+
 			mockBD.On("GetCategoriesAll", mock.Anything).Return(test.mockReturn, test.mockError)
+
 			handler := handler.New(mockBD)
-			if err := handler.GetCategoriesAll(cT); err != nil {
+			if err := handler.GetCategoriesAll(echoCtx); err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
 
@@ -87,5 +95,4 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
 		})
 	}
-
 }

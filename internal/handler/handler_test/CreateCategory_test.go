@@ -20,6 +20,7 @@ import (
 
 func TestHandler_CreateCategory(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name           string
 		inputJSON      string
@@ -53,6 +54,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 			expectedBody:   `{"err": "Server error"}`,
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -60,21 +62,25 @@ func TestHandler_CreateCategory(t *testing.T) {
 			mockRepo := new(mocks.Repository)
 
 			c := echo.New()
+
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(test.inputJSON))
+
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
 			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
+
+			echoCtx := c.NewContext(req, rec)
+
 			mockRepo.On("CreateCategory", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
 
 			handler := handler.New(mockRepo)
-			if err := handler.CreateCategory(cT); err != nil {
+			if err := handler.CreateCategory(echoCtx); err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 
 			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
 		})
 	}
 }

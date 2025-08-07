@@ -20,7 +20,6 @@ func (handler *Handler) DeleteProduct(c echo.Context) error {
 }
 
 func (handler *Handler) HandleDelete(c echo.Context, deleteFunc func(context.Context, int) error, entity string) error {
-
 	logg := appctx.LoggerFromContext(c.Request().Context())
 
 	id, err := strconv.Atoi(c.Param("id"))
@@ -35,11 +34,14 @@ func (handler *Handler) HandleDelete(c echo.Context, deleteFunc func(context.Con
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
+
 			logg.Error("Not found id", "err", err)
 
 			return c.JSON(http.StatusNotFound, errResp)
 		}
+
 		errResp := map[string]string{"err": "Server error"}
+
 		logg.Error("An error occurred while accessing the database", "err", err)
 
 		return c.JSON(http.StatusInternalServerError, errResp)

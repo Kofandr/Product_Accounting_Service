@@ -1,11 +1,21 @@
+==================== ./internal/apperrors/apperrors.go ====================
+package apperrors
+
+import "errors"
+
+var (
+	ErrConnectionFailed = errors.New("connection failed")
+	ErrInvalidData      = errors.New("invalid data")
+)
 ==================== ./internal/logger/logger.go ====================
 package logger
 
 import (
 	"context"
-	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
 	"log/slog"
 	"os"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
 )
 
 func New(level string) *slog.Logger {
@@ -23,163 +33,35 @@ func New(level string) *slog.Logger {
 	}
 
 	return slog.New(slog.NewJSONHandler(os.Stdout, otps))
-
 }
 
 func MustLoggerFromCtx(ctx context.Context) *slog.Logger {
 	if logger, ok := ctx.Value(middleware.CtxLoggerKey{}).(*slog.Logger); ok {
 		return logger
 	}
+
 	return slog.Default()
 }
-==================== ./internal/handler/GetProduct_test.go ====================
-package handler
+==================== ./internal/appvalidator/validator.go ====================
+package appvalidator
 
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
+import "github.com/go-playground/validator/v10"
 
-func TestGetProduct(t *testing.T) {
-	tests := []struct {
-		name           string
-		param          string
-		mockOn         int
-		mockReturn     *model.Product
-		mockErr        error
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:   "Valid Request",
-			param:  "1",
-			mockOn: 1,
-			mockReturn: &model.Product{
-				Id:         1,
-				Name:       "Bolls",
-				Amount:     1,
-				CategoryId: 1,
-			},
-			mockErr:        nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id": 1, "name": "Bolls", "amount": 1, "category_id": 1}`,
-		},
-		{
-			name:   "Invalid id",
-			param:  "abc",
-			mockOn: 1,
-			mockReturn: &model.Product{
-				Id:         1,
-				Name:       "Bolls",
-				Amount:     1,
-				CategoryId: 1,
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid id"}`,
-		},
-		{
-			name:   "not found",
-			param:  "999",
-			mockOn: 999,
-			mockReturn: &model.Product{
-				Id:         1,
-				Name:       "Bolls",
-				Amount:     1,
-				CategoryId: 1,
-			},
-			mockErr:        pgx.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"err": "Not found"}`,
-		},
-		{
-			name:   "Server error",
-			param:  "1",
-			mockOn: 1,
-			mockReturn: &model.Product{
-				Id:         1,
-				Name:       "Bolls",
-				Amount:     1,
-				CategoryId: 1,
-			},
-			mockErr:        fmt.Errorf("erro"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"err": "Server error"}`,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("GetProduct", mock.Anything, test.mockOn).Return(test.mockReturn, test.mockErr)
-			handler := New(mockBD)
-			handler.GetProduct(cT)
-
-			assert.Equal(t, test.expectedStatus, rec.Code)
-
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
-		})
-	}
+type CustomValidator struct {
+	Validator *validator.Validate
 }
-==================== ./internal/handler/GetProductsCategory.go ====================
-package handler
 
-import (
-	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
-func (handler *Handler) GetProductsCategory(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-	ctx := c.Request().Context()
-
-	id, err := parseIDParam(c)
-	if err != nil {
-		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
-	}
-
-	products, err := handler.db.GetProductsCategory(ctx, id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			errResp := map[string]string{"err": "Not found category"}
-			logg.Error("Not found category", "err", err)
-			return c.JSON(http.StatusNotFound, errResp)
-		}
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("Database error", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, products)
-
+func (cv *CustomValidator) Validate(i interface{}) error {
+	return cv.Validator.Struct(i)
 }
 ==================== ./internal/handler/GetCategoriesAll.go ====================
 package handler
 
 import (
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func (handler *Handler) GetCategoriesAll(c echo.Context) error {
@@ -191,323 +73,339 @@ func (handler *Handler) GetCategoriesAll(c echo.Context) error {
 	if err != nil {
 		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)
+
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 
 	return c.JSON(http.StatusOK, categories)
 }
-==================== ./internal/handler/UpdateProduct_test.go ====================
-package handler
+==================== ./internal/handler/handler_test/HandlerUpdate_test.go ====================
+package handler_test
 
 import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-)
 
-func TestUpdateProduct(t *testing.T) {
-	tests := []struct {
-		name           string
-		param          string
-		inputJSON      string
-		mockOn         int
-		mockReturn     error
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:           "Valid Request",
-			param:          "1",
-			inputJSON:      `{"name": "Name", "amount": 0, "category_id": 1}`,
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"Request Status": "Changes completed"}`,
-		},
-		{
-			name:           "Invalid id",
-			param:          "abc",
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid id"}`,
-		},
-		{
-			name:           "not found",
-			param:          "999",
-			mockOn:         999,
-			mockReturn:     pgx.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"err": "Not found"}`,
-		},
-		{
-			name:           "Server error",
-			param:          "1",
-			mockOn:         1,
-			mockReturn:     fmt.Errorf("erro"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"err": "Server error"}`,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
-			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("UpdateProduct", mock.Anything, test.mockOn, mock.Anything).Return(test.mockReturn, test.mockReturn)
-			handler := New(mockBD)
-			handler.UpdateProduct(cT)
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+	"github.com/go-playground/validator/v10"
 
-			assert.Equal(t, test.expectedStatus, rec.Code)
-
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-		})
-
-	}
-
-}
-==================== ./internal/handler/UpdateCategory_test.go ====================
-package handler
-
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
-
-func TestUpdateCategory(t *testing.T) {
-	tests := []struct {
-		name           string
-		param          string
-		inputJSON      string
-		mockOn         int
-		mockReturn     error
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:           "Valid Request",
-			param:          "1",
-			inputJSON:      `{"name": "Name", "description": "Description"}`,
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"Request Status": "Changes completed"}`,
-		},
-		{
-			name:           "Invalid id",
-			param:          "abc",
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid id"}`,
-		},
-		{
-			name:           "not found",
-			param:          "999",
-			mockOn:         999,
-			mockReturn:     pgx.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"err": "Not found"}`,
-		},
-		{
-			name:           "Server error",
-			param:          "1",
-			mockOn:         1,
-			mockReturn:     fmt.Errorf("erro"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"err": "Server error"}`,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
-			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("UpdateCategory", mock.Anything, test.mockOn, mock.Anything).Return(test.mockReturn, test.mockReturn)
-			handler := New(mockBD)
-			handler.UpdateCategory(cT)
-
-			assert.Equal(t, test.expectedStatus, rec.Code)
-
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-		})
-	}
-}
-==================== ./internal/handler/DeleteCategory_test.go ====================
-package handler
-
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
-
-func TestDeleteCategory(t *testing.T) {
-	tests := []struct {
-		name           string
-		param          string
-		mockOn         int
-		mockReturn     error
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:           "Valid Request",
-			param:          "1",
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"Request Status": "Delete completed"}`,
-		},
-		{
-			name:           "Invalid id",
-			param:          "abc",
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid id"}`,
-		},
-		{
-			name:           "not found",
-			param:          "999",
-			mockOn:         999,
-			mockReturn:     pgx.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"err": "Not found"}`,
-		},
-		{
-			name:           "Server error",
-			param:          "1",
-			mockOn:         1,
-			mockReturn:     fmt.Errorf("erro"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"err": "Server error"}`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodDelete, "/", nil)
-			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("DeleteCategory", mock.Anything, test.mockOn).Return(test.mockReturn, test.mockReturn)
-			handler := New(mockBD)
-			handler.DeleteCategory(cT)
-
-			assert.Equal(t, test.expectedStatus, rec.Code)
-
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-		})
-	}
-}
-==================== ./internal/handler/UpdateCategory.go ====================
-package handler
-
-import (
-	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
-func (handler *Handler) UpdateCategory(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-
-	ctx := c.Request().Context()
-
-	id, err := parseIDParam(c)
-	if err != nil {
-		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
-	}
-
-	var category model.UpdateCategoryRequest
-	if err := c.Bind(&category); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-	if err := c.Validate(category); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-
-	err = handler.db.UpdateCategory(ctx, id, &category)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			errResp := map[string]string{"err": "Not found"}
-			logg.Error("Not found id", "err", err)
-			return c.JSON(http.StatusNotFound, errResp)
-		}
-
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"Request Status": "Changes completed",
-	})
-
-}
-==================== ./internal/handler/GetCategoriesAll_test.go ====================
-package handler
-
-import (
-	"fmt"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+)
+
+func stringPtr(s string) *string { return &s }
+func intPtr(i int) *int          { return &i }
+
+func TestHandlerUpdate(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name         string
+		method       func(*handler.Handler, echo.Context) error
+		param        string
+		requestBody  string
+		mockMethod   string
+		mockID       int
+		mockRequest  interface{}
+		mockReturn   error
+		expectedCode int
+		expectedBody string
+	}{
+		// Тесты для UpdateCategory
+		{
+			name:        "UpdateCategory_Success",
+			method:      (*handler.Handler).UpdateCategory,
+			param:       "1",
+			requestBody: `{"name": "New Category", "description": "New Description"}`,
+			mockMethod:  "UpdateCategory",
+			mockID:      1,
+			mockRequest: &model.UpdateCategoryRequest{
+				Name:        stringPtr("New Category"),
+				Description: stringPtr("New Description"),
+			},
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"Request Status":"Changes completed"}`,
+		},
+		{
+			name:        "UpdateCategory_NotFound",
+			method:      (*handler.Handler).UpdateCategory,
+			param:       "999",
+			requestBody: `{"name": "Not Found Category"}`,
+			mockMethod:  "UpdateCategory",
+			mockID:      999,
+			mockRequest: &model.UpdateCategoryRequest{
+				Name: stringPtr("Not Found Category"),
+			},
+			mockReturn:   pgx.ErrNoRows,
+			expectedCode: http.StatusNotFound,
+			expectedBody: `{"err":"Not found"}`,
+		},
+		{
+			name:         "UpdateCategory_InvalidID",
+			method:       (*handler.Handler).UpdateCategory,
+			param:        "invalid",
+			requestBody:  `{"name": "Test"}`,
+			mockMethod:   "",
+			mockReturn:   nil,
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"err":"Invalid id"}`,
+		},
+		{
+			name:         "UpdateCategory_InvalidJSON",
+			method:       (*handler.Handler).UpdateCategory,
+			param:        "1",
+			requestBody:  `{"name": "Test", invalid}`,
+			mockMethod:   "",
+			mockReturn:   nil,
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"err":"Invalid JSON format"}`,
+		},
+
+		{
+			name:        "UpdateProduct_Success",
+			method:      (*handler.Handler).UpdateProduct,
+			param:       "2",
+			requestBody: `{"name": "Updated Product", "amount": 10, "category_id": 3}`,
+			mockMethod:  "UpdateProduct",
+			mockID:      2,
+			mockRequest: &model.UpdateProductRequest{
+				Name:       stringPtr("Updated Product"),
+				Amount:     intPtr(10),
+				CategoryID: intPtr(3),
+			},
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"Request Status":"Changes completed"}`,
+		},
+		{
+			name:        "UpdateProduct_NotFound",
+			method:      (*handler.Handler).UpdateProduct,
+			param:       "888",
+			requestBody: `{"name": "Ghost Product"}`,
+			mockMethod:  "UpdateProduct",
+			mockID:      888,
+			mockRequest: &model.UpdateProductRequest{
+				Name: stringPtr("Ghost Product"),
+			},
+			mockReturn:   pgx.ErrNoRows,
+			expectedCode: http.StatusNotFound,
+			expectedBody: `{"err":"Not found"}`,
+		},
+		{
+			name:         "UpdateProduct_InvalidID",
+			method:       (*handler.Handler).UpdateProduct,
+			param:        "nan",
+			requestBody:  `{"name": "Test"}`,
+			mockMethod:   "",
+			mockReturn:   nil,
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"err":"Invalid id"}`,
+		},
+		{
+			name:         "UpdateProduct_InvalidJSON",
+			method:       (*handler.Handler).UpdateProduct,
+			param:        "1",
+			requestBody:  `{invalid json}`,
+			mockMethod:   "",
+			mockReturn:   nil,
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"err":"Invalid JSON format"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.requestBody))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			rec := httptest.NewRecorder()
+			e.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
+			c := e.NewContext(req, rec)
+			c.SetParamNames("id")
+			c.SetParamValues(test.param)
+
+			mockDB := new(mocks.Repository)
+
+			if test.mockMethod != "" {
+				mockDB.On(
+					test.mockMethod,
+					mock.Anything,
+					test.mockID,
+					test.mockRequest,
+				).Return(test.mockReturn)
+			}
+
+			handler := handler.New(mockDB)
+			err := test.method(handler, c)
+			assert.NoError(t, err)
+			assert.Equal(t, test.expectedCode, rec.Code)
+			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+
+			if test.mockMethod != "" {
+				mockDB.AssertExpectations(t)
+			}
+		})
+	}
+}
+==================== ./internal/handler/handler_test/HandleGet_test.go ====================
+package handler_test
+
+import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+func TestHandlerGet(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name         string
+		method       func(*handler.Handler, echo.Context) error
+		param        string
+		mockMethod   string
+		mockOn       int
+		mockModel    interface{}
+		mockReturn   error
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:       "GetCategoryById_Success",
+			method:     (*handler.Handler).GetCategoryByID,
+			param:      "1",
+			mockOn:     1,
+			mockMethod: "GetCategory",
+			mockModel: &model.Category{
+				ID:          1,
+				Name:        "Bolls",
+				Description: "Bolls Description",
+			},
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id": 1, "name": "Bolls", "description": "Bolls Description"}`,
+		},
+		{
+			name:       "GetProduct_Success",
+			method:     (*handler.Handler).GetProduct,
+			param:      "1",
+			mockMethod: "GetProduct",
+			mockOn:     1,
+			mockModel: &model.Product{
+				ID:         1,
+				Name:       "Bolls",
+				Amount:     1,
+				CategoryID: 1,
+			},
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id": 1, "name": "Bolls", "amount": 1, "category_id": 1}`,
+		},
+		{
+			name:       "GetProductsCategory_Success",
+			method:     (*handler.Handler).GetProductsCategory,
+			param:      "1",
+			mockMethod: "GetProductsCategory",
+			mockOn:     1,
+			mockModel: &model.ProductsCategory{
+				Category: "Bolls",
+				Products: []model.Product{
+					{
+						ID:         1,
+						Name:       "Bolls",
+						Amount:     1,
+						CategoryID: 1,
+					},
+					{
+						ID:         2,
+						Name:       "R",
+						Amount:     1,
+						CategoryID: 1,
+					},
+				},
+			},
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{
+				"Category": "Bolls",	
+                "Products": [
+                    {
+						"id":          1,
+						"name":        "Bolls",
+						"amount": 1,
+						"category_id": 1
+                    },
+                    {
+                        "id":          2,
+						"name":        "R",
+						"amount": 1,
+						"category_id": 1
+                    }
+                ]
+            }`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodDelete, "/"+test.param, nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetParamNames("id")
+			c.SetParamValues(test.param)
+
+			mockBD := new(mocks.Repository)
+			mockBD.On(test.mockMethod, mock.Anything, test.mockOn).Return(test.mockModel, test.mockReturn)
+			handler := handler.New(mockBD)
+			if err := test.method(handler, c); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			assert.Equal(t, test.expectedCode, rec.Code)
+
+			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
+
+		})
+	}
+
+}
+==================== ./internal/handler/handler_test/GetCategoriesAll_test.go ====================
+package handler
+
+import (
+	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
+
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestHandlerGetCategoriesAll(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		mockReturn     *model.AllCategories
@@ -520,12 +418,12 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 			mockReturn: &model.AllCategories{
 				Categories: []model.Category{
 					{
-						Id:          1,
+						ID:          1,
 						Name:        "Bolls",
 						Description: "Bolls Description",
 					},
 					{
-						Id:          2,
+						ID:          2,
 						Name:        "R",
 						Description: "R 00000000000000",
 					},
@@ -551,7 +449,7 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 		{
 			name:           "Error BD",
 			mockReturn:     &model.AllCategories{},
-			mockError:      fmt.Errorf("erro"),
+			mockError:      apperrors.ErrConnectionFailed,
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"err": "Server error"}`,
 		},
@@ -566,8 +464,10 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 			rec := httptest.NewRecorder()
 			cT := c.NewContext(req, rec)
 			mockBD.On("GetCategoriesAll", mock.Anything).Return(test.mockReturn, test.mockError)
-			handler := New(mockBD)
-			handler.GetCategoriesAll(cT)
+			handler := handler.New(mockBD)
+			if err := handler.GetCategoriesAll(cT); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 
@@ -576,374 +476,29 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 	}
 
 }
-==================== ./internal/handler/DeleteProduct_test.go ====================
-package handler
-
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
-
-func TestDeleteProduct(t *testing.T) {
-	tests := []struct {
-		name           string
-		param          string
-		mockOn         int
-		mockReturn     error
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:           "Valid Request",
-			param:          "1",
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"Request Status": "Delete completed"}`,
-		},
-		{
-			name:           "Invalid id",
-			param:          "abc",
-			mockOn:         1,
-			mockReturn:     nil,
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid id"}`,
-		},
-		{
-			name:           "not found",
-			param:          "999",
-			mockOn:         999,
-			mockReturn:     pgx.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"err": "Not found"}`,
-		},
-		{
-			name:           "Server error",
-			param:          "1",
-			mockOn:         1,
-			mockReturn:     fmt.Errorf("erro"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"err": "Server error"}`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodDelete, "/", nil)
-			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("DeleteProduct", mock.Anything, test.mockOn).Return(test.mockReturn, test.mockReturn)
-			handler := New(mockBD)
-			handler.DeleteProduct(cT)
-
-			assert.Equal(t, test.expectedStatus, rec.Code)
-
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-		})
-	}
-}
-==================== ./internal/handler/UpdateProduct.go ====================
-package handler
-
-import (
-	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
-func (handler Handler) UpdateProduct(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-
-	ctx := c.Request().Context()
-
-	id, err := parseIDParam(c)
-	if err != nil {
-		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
-	}
-
-	var product model.UpdateProductRequest
-	if err := c.Bind(&product); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-	if err := c.Validate(product); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-
-	err = handler.db.UpdateProduct(ctx, id, &product)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			errResp := map[string]string{"err": "Not found"}
-			logg.Error("Not found id", "err", err)
-			return c.JSON(http.StatusNotFound, errResp)
-		}
-
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"Request Status": "Changes completed",
-	})
-}
-==================== ./internal/handler/GetProductsCategory_test.go ====================
-package handler
-
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
-
-func TestGetProductsCategory(t *testing.T) {
-	tests := []struct {
-		name                    string
-		param                   string
-		mockCategoryExistsOn    int
-		mockCategoryExistsBool  bool
-		mockCategoryExistsError error
-		mockReturn              *model.ProductsCategory
-		mockError               error
-		expectedStatus          int
-		expectedBody            string
-	}{
-		{
-			name:                   "Valid Request",
-			param:                  "1",
-			mockCategoryExistsOn:   1,
-			mockCategoryExistsBool: true,
-			mockReturn: &model.ProductsCategory{
-				Category: "Bolls",
-				Products: []model.Product{
-					{
-						Id:         1,
-						Name:       "Bolls",
-						Amount:     1,
-						CategoryId: 1,
-					},
-					{
-						Id:         2,
-						Name:       "R",
-						Amount:     1,
-						CategoryId: 1,
-					},
-				},
-			},
-			mockError:      nil,
-			expectedStatus: http.StatusOK,
-			expectedBody: `{
-				"Category": "Bolls",	
-                "Products": [
-                    {
-						"id":          1,
-						"name":        "Bolls",
-						"amount": 1,
-						"category_id": 1
-                    },
-                    {
-                        "id":          2,
-						"name":        "R",
-						"amount": 1,
-						"category_id": 1
-                    }
-                ]
-            }`,
-		},
-		{
-			name:                   "Error BD",
-			param:                  "1",
-			mockCategoryExistsOn:   1,
-			mockCategoryExistsBool: true,
-			mockReturn:             &model.ProductsCategory{},
-			mockError:              fmt.Errorf("erro"),
-			expectedStatus:         http.StatusInternalServerError,
-			expectedBody:           `{"err": "Server error"}`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("CategoryExists", mock.Anything, test.mockCategoryExistsOn).Return(test.mockCategoryExistsBool, test.mockCategoryExistsError)
-			mockBD.On("GetProductsCategory", mock.Anything, test.mockCategoryExistsOn).Return(test.mockReturn, test.mockError)
-			handler := New(mockBD)
-			handler.GetProductsCategory(cT)
-
-			assert.Equal(t, test.expectedStatus, rec.Code)
-
-			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-		})
-	}
-}
-==================== ./internal/handler/handler.go ====================
-package handler
-
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
-	"github.com/labstack/echo/v4"
-	"strconv"
-)
-
-type Handler struct {
-	db repository.Repository
-}
-
-func New(db repository.Repository) *Handler {
-	return &Handler{
-		db,
-	}
-}
-
-func parseIDParam(c echo.Context) (int, error) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return 0, fmt.Errorf("invalid id: %w", err)
-	}
-	return id, nil
-}
-==================== ./internal/handler/CreateProduct.go ====================
-package handler
-
-import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
-func (handler *Handler) CreateProduct(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-
-	ctx := c.Request().Context()
-
-	var product model.CreateProductRequest
-	if err := c.Bind(&product); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-	if err := c.Validate(product); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-
-	be, err := handler.db.CategoryExists(ctx, product.CategoryId)
-	if err != nil {
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-	if !be {
-		errResp := map[string]string{"err": "Not found category"}
-		logg.Error("Not found Category", "err", err)
-		return c.JSON(http.StatusNotFound, errResp)
-	}
-
-	id, err := handler.db.CreateProduct(ctx, &product)
-	if err != nil {
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"Id product": id,
-	})
-}
-==================== ./internal/handler/GetCategoryById.go ====================
-package handler
-
-import (
-	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
-func (handler *Handler) GetCategoryById(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-
-	ctx := c.Request().Context()
-
-	id, err := parseIDParam(c)
-	if err != nil {
-		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
-	}
-
-	category, err := handler.db.GetCategory(ctx, id)
-	if err != nil {
-
-		if errors.Is(err, pgx.ErrNoRows) {
-			errResp := map[string]string{"err": "Not found"}
-			logg.Error("Not found id", "err", err)
-			return c.JSON(http.StatusNotFound, errResp)
-		}
-		errResp := map[string]string{"err": "Server error"}
-
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, category)
-}
-==================== ./internal/handler/CreateCategory_test.go ====================
-package handler
+==================== ./internal/handler/handler_test/CreateCategory_test.go ====================
+package handler_test
 
 import (
 	"bytes"
-	"errors"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestHandler_CreateCategory(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		inputJSON      string
@@ -972,7 +527,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 			name:           "Database Error",
 			inputJSON:      `{"name": "Books", "description": "description"}`,
 			mockReturn:     0,
-			mockError:      errors.New("connection failed"),
+			mockError:      apperrors.ErrConnectionFailed,
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"err": "Server error"}`,
 		},
@@ -990,8 +545,10 @@ func TestHandler_CreateCategory(t *testing.T) {
 			cT := c.NewContext(req, rec)
 			mockRepo.On("CreateCategory", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
 
-			handler := New(mockRepo)
-			handler.CreateCategory(cT)
+			handler := handler.New(mockRepo)
+			if err := handler.CreateCategory(cT); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 
@@ -1000,203 +557,102 @@ func TestHandler_CreateCategory(t *testing.T) {
 		})
 	}
 }
-==================== ./internal/handler/GetProduct.go ====================
-package handler
+==================== ./internal/handler/handler_test/HandlerDelete_test.go ====================
+package handler_test
 
 import (
-	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/jackc/pgx/v5"
-	"github.com/labstack/echo/v4"
 	"net/http"
-)
+	"net/http/httptest"
+	"strings"
+	"testing"
 
-func (handler *Handler) GetProduct(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-
-	ctx := c.Request().Context()
-
-	id, err := parseIDParam(c)
-	if err != nil {
-		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
-	}
-
-	product, err := handler.db.GetProduct(ctx, id)
-	if err != nil {
-
-		if errors.Is(err, pgx.ErrNoRows) {
-			errResp := map[string]string{"err": "Not found"}
-			logg.Error("Not found id", "err", err)
-			return c.JSON(http.StatusNotFound, errResp)
-		}
-		errResp := map[string]string{"err": "Server error"}
-
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, product)
-}
-==================== ./internal/handler/GetCategoryById_test.go ====================
-package handler
-
-import (
-	"fmt"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/jackc/pgx/v5"
-
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"net/http/httptest"
-	"strings"
-
-	"net/http"
-
-	"testing"
 )
 
-func TestGetCategoryById(t *testing.T) {
+func TestDeleteHandlers(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
-		name           string
-		param          string
-		mockOn         int64
-		mockReturn     *model.Category
-		mockErr        error
-		expectedStatus int
-		expectedBody   string
+		name         string
+		method       func(*handler.Handler, echo.Context) error
+		param        string
+		mockMethod   string
+		mockOn       int
+		mockReturn   error
+		expectedCode int
+		expectedBody string
 	}{
 		{
-			name:   "Valid Request",
-			param:  "1",
-			mockOn: 1,
-			mockReturn: &model.Category{
-				Id:          1,
-				Name:        "Bolls",
-				Description: "Bolls Description",
-			},
-			mockErr:        nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id": 1, "name": "Bolls", "description": "Bolls Description"}`,
+			name:         "DeleteCategory_Success",
+			method:       (*handler.Handler).DeleteCategory,
+			param:        "1",
+			mockOn:       1,
+			mockMethod:   "DeleteCategory",
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"message":"Category deleted"}`,
 		},
 		{
-			name:   "Invalid id",
-			param:  "abc",
-			mockOn: 1,
-			mockReturn: &model.Category{
-				Id:          1,
-				Name:        "Bolls",
-				Description: "Bolls Description",
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid id"}`,
-		},
-		{
-			name:   "not found",
-			param:  "999",
-			mockOn: 999,
-			mockReturn: &model.Category{
-				Id:          1,
-				Name:        "Bolls",
-				Description: "Bolls Description",
-			},
-			mockErr:        pgx.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"err": "Not found"}`,
-		},
-		{
-			name:   "Server error",
-			param:  "1",
-			mockOn: 1,
-			mockReturn: &model.Category{
-				Id:          1,
-				Name:        "Bolls",
-				Description: "Bolls Description",
-			},
-			mockErr:        fmt.Errorf("erro"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"err": "Server error"}`,
+			name:         "DeleteProduct_Success",
+			method:       (*handler.Handler).DeleteProduct,
+			param:        "1",
+			mockMethod:   "DeleteProduct",
+			mockOn:       1,
+			mockReturn:   nil,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"message":"Product deleted"}`,
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			mockBD := new(mocks.Repository)
-
-			c := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodDelete, "/"+test.param, nil)
 			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
-			cT.SetParamNames("id")
-			cT.SetParamValues(test.param)
-			mockBD.On("GetCategory", mock.Anything, test.mockOn).Return(test.mockReturn, test.mockErr)
-			handler := New(mockBD)
-			handler.GetCategoryById(cT)
+			c := e.NewContext(req, rec)
+			c.SetParamNames("id")
+			c.SetParamValues(test.param)
 
-			assert.Equal(t, test.expectedStatus, rec.Code)
+			mockBD := new(mocks.Repository)
+			mockBD.On(test.mockMethod, mock.Anything, test.mockOn).Return(test.mockReturn)
+			handler := handler.New(mockBD)
+
+			if err := test.method(handler, c); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			assert.Equal(t, test.expectedCode, rec.Code)
 
 			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
 
 		})
 	}
+
 }
-==================== ./internal/handler/CreateCategory.go ====================
-package handler
-
-import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
-func (handler *Handler) CreateCategory(c echo.Context) error {
-	logg := appctx.LoggerFromContext(c.Request().Context())
-
-	ctx := c.Request().Context()
-
-	var category model.CreateCategoryRequest
-	if err := c.Bind(&category); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-	if err := c.Validate(category); err != nil {
-		errResp := map[string]string{"err": "Invalid JSON format"}
-		logg.Error("Invalid JSON received")
-		return c.JSON(http.StatusBadRequest, errResp)
-	}
-
-	id, err := handler.db.CreateCategory(ctx, &category)
-	if err != nil {
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"Id category": id,
-	})
-}
-==================== ./internal/handler/CreateProduct_test.go ====================
-package handler
+==================== ./internal/handler/handler_test/CreateProduct_test.go ====================
+package handler_test
 
 import (
 	"bytes"
-	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestCreateProduct(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                    string
 		inputJSON               string
@@ -1248,7 +704,7 @@ func TestCreateProduct(t *testing.T) {
 			mockCategoryExistsOn:    1,
 			mockCategoryExistsBool:  true,
 			mockCategoryExistsError: nil,
-			mockError:               errors.New("connection failed"),
+			mockError:               apperrors.ErrConnectionFailed,
 			expectedStatus:          http.StatusInternalServerError,
 			expectedBody:            `{"err": "Server error"}`,
 		},
@@ -1265,8 +721,10 @@ func TestCreateProduct(t *testing.T) {
 			cT := c.NewContext(req, rec)
 			mockRepo.On("CategoryExists", mock.Anything, test.mockCategoryExistsOn).Return(test.mockCategoryExistsBool, test.mockCategoryExistsError)
 			mockRepo.On("CreateProduct", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
-			handler := New(mockRepo)
-			handler.CreateProduct(cT)
+			handler := handler.New(mockRepo)
+			if err := handler.CreateProduct(cT); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 
@@ -1275,81 +733,358 @@ func TestCreateProduct(t *testing.T) {
 		})
 	}
 }
-==================== ./internal/handler/DeleteCategory.go ====================
+==================== ./internal/handler/HandlerGet.go ====================
 package handler
 
 import (
+	"context"
 	"errors"
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
+)
+
+func HandlerGet[T any](
+	c echo.Context,
+	getFunc func(context.Context, int) (T, error),
+	entity string,
+	notFoundMsg string,
+	invalidIDMsg string,
+) error {
+	logg := appctx.LoggerFromContext(c.Request().Context())
+	ctx := c.Request().Context()
+
+	id, err := parseIDParam(c)
+	if err != nil {
+		logg.Info("Invalid ID",
+			"entity", entity,
+			"input", c.Param("id"),
+			"error", err.Error())
+
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": invalidIDMsg})
+	}
+
+	model, err := getFunc(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			logg.Warn("Entity not found",
+				"entity", entity,
+				"id", id)
+
+			return c.JSON(http.StatusNotFound, map[string]string{"err": notFoundMsg})
+		}
+		logg.Error("Database error",
+			"operation", "Get"+entity,
+			"id", id,
+			"error", err.Error())
+
+		return c.JSON(http.StatusInternalServerError, map[string]string{"err": "Server error"})
+	}
+
+	return c.JSON(http.StatusOK, model)
+}
+
+func (handler *Handler) GetProduct(c echo.Context) error {
+	return HandlerGet(
+		c,
+		handler.db.GetProduct,
+		"Product",
+		"Product not found",
+		"Invalid product ID",
+	)
+}
+
+func (handler *Handler) GetCategoryByID(c echo.Context) error {
+	return HandlerGet(
+		c,
+		handler.db.GetCategory,
+		"Category",
+		"Category not found",
+		"Invalid category ID",
+	)
+}
+
+func (handler *Handler) GetProductsCategory(c echo.Context) error {
+	return HandlerGet(
+		c,
+		handler.db.GetProductsCategory,
+		"ProductsCategory",
+		"Category not found or empty",
+		"Invalid category ID",
+	)
+}
+==================== ./internal/handler/handler.go ====================
+package handler
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
+	"github.com/labstack/echo/v4"
+)
+
+type Handler struct {
+	db repository.Repository
+}
+
+func New(db repository.Repository) *Handler {
+	return &Handler{
+		db,
+	}
+}
+
+func parseIDParam(c echo.Context) (int, error) {
+	idStr := c.Param("id")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid id: %w", err)
+	}
+
+	return id, nil
+}
+==================== ./internal/handler/CreateProduct.go ====================
+package handler
+
+import (
 	"net/http"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/labstack/echo/v4"
+)
+
+func (handler *Handler) CreateProduct(c echo.Context) error {
+	logg := appctx.LoggerFromContext(c.Request().Context())
+
+	ctx := c.Request().Context()
+
+	var product model.CreateProductRequest
+	if err := c.Bind(&product); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received", "err", err)
+
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
+
+	if err := c.Validate(product); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received", "err", err)
+
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
+
+	Exist, err := handler.db.CategoryExists(ctx, product.CategoryID)
+	if err != nil {
+		errResp := map[string]string{"err": "Server error"}
+		logg.Error("An error occurred while accessing the database", "err", err)
+
+		return c.JSON(http.StatusInternalServerError, errResp)
+	}
+
+	if !Exist {
+		errResp := map[string]string{"err": "Not found category"}
+		logg.Error("Not found Category", "err", err)
+
+		return c.JSON(http.StatusNotFound, errResp)
+	}
+
+	id, err := handler.db.CreateProduct(ctx, &product)
+	if err != nil {
+		errResp := map[string]string{"err": "Server error"}
+		logg.Error("An error occurred while accessing the database", "err", err)
+
+		return c.JSON(http.StatusInternalServerError, errResp)
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"Id product": id,
+	})
+}
+==================== ./internal/handler/CreateCategory.go ====================
+package handler
+
+import (
+	"net/http"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+	"github.com/labstack/echo/v4"
+)
+
+func (handler *Handler) CreateCategory(c echo.Context) error {
+	logg := appctx.LoggerFromContext(c.Request().Context())
+
+	ctx := c.Request().Context()
+
+	var category model.CreateCategoryRequest
+	if err := c.Bind(&category); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received", "err", err)
+
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
+
+	if err := c.Validate(category); err != nil {
+		errResp := map[string]string{"err": "Invalid JSON format"}
+		logg.Error("Invalid JSON received", "err", err)
+
+		return c.JSON(http.StatusBadRequest, errResp)
+	}
+
+	id, err := handler.db.CreateCategory(ctx, &category)
+	if err != nil {
+		errResp := map[string]string{"err": "Server error"}
+		logg.Error("An error occurred while accessing the database", "err", err)
+
+		return c.JSON(http.StatusInternalServerError, errResp)
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"Id category": id,
+	})
+}
+==================== ./internal/handler/handlerDelete.go ====================
+package handler
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
+	"github.com/jackc/pgx/v5"
+	"github.com/labstack/echo/v4"
 )
 
 func (handler *Handler) DeleteCategory(c echo.Context) error {
+	return handler.HandleDelete(c, handler.db.DeleteCategory, "Category")
+}
+
+func (handler *Handler) DeleteProduct(c echo.Context) error {
+	return handler.HandleDelete(c, handler.db.DeleteProduct, "Product")
+}
+
+func (handler *Handler) HandleDelete(c echo.Context, deleteFunc func(context.Context, int) error, entity string) error {
+
 	logg := appctx.LoggerFromContext(c.Request().Context())
 
-	ctx := c.Request().Context()
+	id, err := strconv.Atoi(c.Param("id"))
 
-	id, err := parseIDParam(c)
 	if err != nil {
-		logg.Info("Invalid id", "err", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
+		logg.Error("Invalid ID", "err", err)
+
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid ID"})
 	}
 
-	err = handler.db.DeleteCategory(ctx, id)
+	err = deleteFunc(c.Request().Context(), id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			errResp := map[string]string{"err": "Not found"}
 			logg.Error("Not found id", "err", err)
+
 			return c.JSON(http.StatusNotFound, errResp)
 		}
 		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)
+
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"Request Status": "Delete completed",
-	})
+	return c.JSON(http.StatusOK, map[string]string{"message": entity + " deleted"})
 }
-==================== ./internal/handler/DeleteProduct.go ====================
+==================== ./internal/handler/HandlerUpdate.go ====================
 package handler
 
 import (
+	"context"
 	"errors"
+	"net/http"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
-func (handler *Handler) DeleteProduct(c echo.Context) error {
+func HandlerUpdate[T any](
+	c echo.Context,
+	updateFunc func(context.Context, int, *T) error,
+	entityName string,
+) error {
 	logg := appctx.LoggerFromContext(c.Request().Context())
-
 	ctx := c.Request().Context()
 
 	id, err := parseIDParam(c)
 	if err != nil {
-		logg.Info("Invalid id", "err", err)
+		logg.Info("Invalid id",
+			"entity", entityName,
+			"error", err)
+
 		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid id"})
 	}
 
-	err = handler.db.DeleteProduct(ctx, id)
+	var requestData T
+	if err := c.Bind(&requestData); err != nil {
+		logg.Error("Invalid JSON received",
+			"entity", entityName,
+			"error", err)
+
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid JSON format"})
+	}
+
+	if err := c.Validate(requestData); err != nil {
+		logg.Error("Validation failed",
+			"entity", entityName,
+			"error", err)
+
+		return c.JSON(http.StatusBadRequest, map[string]string{"err": "Invalid request data"})
+	}
+
+	err = updateFunc(ctx, id, &requestData)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			errResp := map[string]string{"err": "Not found"}
-			logg.Error("Not found id", "err", err)
-			return c.JSON(http.StatusNotFound, errResp)
+			logg.Error("Entity not found",
+				"entity", entityName,
+				"id", id,
+				"error", err)
+
+			return c.JSON(http.StatusNotFound, map[string]string{"err": "Not found"})
 		}
-		errResp := map[string]string{"err": "Server error"}
-		logg.Error("An error occurred while accessing the database", "err", err)
-		return c.JSON(http.StatusInternalServerError, errResp)
+
+		logg.Error("Database error",
+			"entity", entityName,
+			"operation", "update",
+			"id", id,
+			"error", err)
+
+		return c.JSON(http.StatusInternalServerError, map[string]string{"err": "Server error"})
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"Request Status": "Delete completed",
+		"Request Status": "Changes completed",
 	})
+}
+
+func (handler *Handler) UpdateCategory(c echo.Context) error {
+	return HandlerUpdate[model.UpdateCategoryRequest](
+		c,
+		handler.db.UpdateCategory,
+		"Category",
+	)
+}
+
+func (handler *Handler) UpdateProduct(c echo.Context) error {
+	return HandlerUpdate[model.UpdateProductRequest](
+		c,
+		handler.db.UpdateProduct,
+		"Product",
+	)
 }
 ==================== ./internal/model/model.go ====================
 package model
@@ -1359,7 +1094,7 @@ type AllCategories struct {
 }
 
 type Category struct {
-	Id          int    `json:"id" example:"4"`
+	ID          int    `json:"id" example:"4"`
 	Name        string `json:"name" example:"Name"`
 	Description string `json:"description" example:"Description"`
 }
@@ -1373,10 +1108,10 @@ type UpdateCategoryRequest struct {
 }
 
 type Product struct {
-	Id         int    `json:"id" validate:"required,min=1"`
+	ID         int    `json:"id" validate:"required,min=1"`
 	Name       string `json:"name" validate:"required,min=2,max=100"`
 	Amount     int    `json:"amount" validate:"required,min=0"`
-	CategoryId int    `json:"category_id" validate:"required,min=1"`
+	CategoryID int    `json:"category_id" validate:"required,min=1"`
 }
 
 type ProductsCategory struct {
@@ -1387,27 +1122,31 @@ type ProductsCategory struct {
 type CreateProductRequest struct {
 	Name       string `json:"name" validate:"required,min=2,max=100"`
 	Amount     int    `json:"amount" validate:"required,min=0"`
-	CategoryId int    `json:"category_id" validate:"required,min=1"`
+	CategoryID int    `json:"category_id" validate:"required,min=1"`
 }
 
 type UpdateProductRequest struct {
 	Name       *string `json:"name,omitempty" validate:"omitempty,min=2,max=100"`
 	Amount     *int    `json:"amount,omitempty" validate:"omitempty,min=0"`
-	CategoryId *int    `json:"category_id,omitempty" validate:"omitempty,min=1"`
+	CategoryID *int    `json:"category_id,omitempty" validate:"omitempty,min=1"`
 }
 ==================== ./internal/server/server.go ====================
 package server
 
 import (
 	"context"
-	"github.com/Kofandr/Product_Accounting_Service/internal/config"
+	"log/slog"
+	"strconv"
+
+	"github.com/Kofandr/Product_Accounting_Service/config"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"log/slog"
-	"strconv"
 )
 
 type Server struct {
@@ -1421,10 +1160,12 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 	serverEcho := echo.New()
 	pgxRepository := repository.New(db)
 	handler := handler.New(pgxRepository)
+
 	serverEcho.Use(middleware.RequestLogger(logg))
+	serverEcho.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 	serverEcho.GET("/categories", handler.GetCategoriesAll)
-	serverEcho.GET("/categories/:id", handler.GetCategoryById)
+	serverEcho.GET("/categories/:id", handler.GetCategoryByID)
 	serverEcho.POST("/categories", handler.CreateCategory)
 	serverEcho.PATCH("/categories/:id", handler.UpdateCategory)
 	serverEcho.DELETE("/categories/:id", handler.DeleteCategory)
@@ -1440,22 +1181,25 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 
 func (server *Server) Start() error {
 	server.logg.Info("Starting server", "addr", server.addr)
+
 	return server.echo.Start(server.addr)
 }
 
 func (server *Server) Shutdown(ctx context.Context) error {
 	server.logg.Info("Shutting down server")
+
 	return server.echo.Shutdown(ctx)
 }
 ==================== ./internal/middleware/middleware.go ====================
 package middleware
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"log/slog"
-	"time"
 )
 
 type CtxLoggerKey struct {
@@ -1501,50 +1245,6 @@ func RequestLogger(logg *slog.Logger) echo.MiddlewareFunc {
 		}
 	}
 }
-==================== ./internal/config/config.go ====================
-package config
-
-import (
-	"fmt"
-	"github.com/caarlos0/env/v8"
-	"github.com/go-playground/validator/v10"
-	"github.com/joho/godotenv"
-	"log"
-)
-
-type Configuration struct {
-	Port        int    `env:"PORT" envdefault:"8080" validate:"required,min=1,max=65535"`
-	LoggerLevel string `env:"LOGGER_LEVEL" envdefault:"INFO" validate:"required,oneof=DEBUG INFO WARN ERROR"`
-	DatabaseUrl string `env:"DATABASE_URL" validate:"required"`
-}
-
-func Load() (*Configuration, error) {
-	cfg := &Configuration{}
-
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("Error loading Config.env file: %s", err)
-	}
-
-	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("Failed to parse environment variables: %s", err)
-	}
-
-	if err := validator.New().Struct(cfg); err != nil {
-		return nil, fmt.Errorf("validator error: %s", err)
-	}
-
-	return cfg, nil
-
-}
-
-func Mustload() *Configuration {
-	cfg, err := Load()
-	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
-	return cfg
-}
 ==================== ./internal/appctx/logger.go ====================
 package appctx
 
@@ -1576,6 +1276,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -1601,15 +1302,15 @@ func (pgxRepository *PgxRepository) GetCategory(ctx context.Context, id int) (*m
 		"SELECT id, name, description FROM categories WHERE id = $1",
 		id,
 	).Scan(
-		&categories.Id,
+		&categories.ID,
 		&categories.Name,
 		&categories.Description,
 	)
+
 	return &categories, err
 }
 
 func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*model.AllCategories, error) {
-
 	rows, err := pgxRepository.db.Query(ctx, "SELECT id, name, description FROM categories")
 	if err != nil {
 		return nil, err
@@ -1621,7 +1322,7 @@ func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*mode
 	for rows.Next() {
 		var c model.Category
 
-		if err := rows.Scan(&c.Id, &c.Name, &c.Description); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}
 		categories = append(categories, c)
@@ -1632,7 +1333,6 @@ func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*mode
 	}
 
 	return &model.AllCategories{Categories: categories}, nil
-
 }
 
 func (pgxRepository *PgxRepository) CreateCategory(ctx context.Context, category *model.CreateCategoryRequest) (int, error) {
@@ -1649,8 +1349,10 @@ func (pgxRepository *PgxRepository) CreateCategory(ctx context.Context, category
 				return id, fmt.Errorf("%w: category '%s' already exists", ErrDuplicate, category.Name)
 			}
 		}
+
 		return id, fmt.Errorf("failed to create category: %w", err)
 	}
+
 	return id, err
 }
 
@@ -1680,6 +1382,7 @@ func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, 
 	if err != nil {
 		return err
 	}
+
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return pgx.ErrNoRows
@@ -1710,16 +1413,16 @@ func (pgxRepository *PgxRepository) GetProduct(ctx context.Context, id int) (*mo
 		"SELECT id, name, amount, categoryid FROM products WHERE id = $1",
 		id,
 	).Scan(
-		&product.Id,
+		&product.ID,
 		&product.Name,
 		&product.Amount,
-		&product.CategoryId,
+		&product.CategoryID,
 	)
 
 	return &product, err
 }
 
-func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, categoryId int) (*model.ProductsCategory, error) {
+func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, categoryID int) (*model.ProductsCategory, error) {
 	const query = `
         SELECT 
             c.name AS category_name,
@@ -1735,24 +1438,24 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
 	var result model.ProductsCategory
 	var products []model.Product
 
-	rows, err := pgxRepository.db.Query(ctx, query, categoryId)
+	rows, err := pgxRepository.db.Query(ctx, query, categoryID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query products: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var p model.Product
+		var product model.Product
 		if err := rows.Scan(
 			&result.Category,
-			&p.Id,
-			&p.Name,
-			&p.Amount,
-			&p.CategoryId,
+			&product.ID,
+			&product.Name,
+			&product.Amount,
+			&product.CategoryID,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
-		products = append(products, p)
+		products = append(products, product)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -1764,8 +1467,8 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
 	}
 
 	result.Products = products
-	return &result, nil
 
+	return &result, nil
 }
 
 func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *model.CreateProductRequest) (int, error) {
@@ -1775,7 +1478,7 @@ func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *
 		"INSERT INTO products (name, amount, categoryid) VALUES ($1, $2, $3) RETURNING id",
 		product.Name,
 		product.Amount,
-		product.CategoryId,
+		product.CategoryID,
 	).Scan(&id)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
@@ -1784,13 +1487,14 @@ func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *
 				return id, fmt.Errorf("%w: products  '%s' already exists", ErrDuplicate, product.Name)
 			}
 		}
+
 		return id, fmt.Errorf("failed to create category: %w", err)
 	}
+
 	return id, err
 }
 
 func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, update *model.UpdateProductRequest) error {
-
 	query := `
         UPDATE products
 		SET
@@ -1813,8 +1517,8 @@ func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, u
 		descPtr = nil
 	}
 
-	if update.CategoryId != nil {
-		catPtr = *update.CategoryId
+	if update.CategoryID != nil {
+		catPtr = *update.CategoryID
 	} else {
 		catPtr = nil
 	}
@@ -1851,6 +1555,7 @@ func (pgxRepository *PgxRepository) CategoryExists(ctx context.Context, id int) 
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`
 	err := pgxRepository.db.QueryRow(ctx, query, id).Scan(&exists)
+
 	return exists, err
 }
 ==================== ./internal/repository/repository.go ====================
@@ -1859,6 +1564,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 )
 
@@ -1877,7 +1583,7 @@ type CategoryRepository interface {
 
 type ProductRepository interface {
 	GetProduct(ctx context.Context, id int) (*model.Product, error)
-	GetProductsCategory(ctx context.Context, categoryId int) (*model.ProductsCategory, error)
+	GetProductsCategory(ctx context.Context, categoryID int) (*model.ProductsCategory, error)
 	CreateProduct(ctx context.Context, product *model.CreateProductRequest) (int, error)
 	UpdateProduct(ctx context.Context, id int, update *model.UpdateProductRequest) error
 	DeleteProduct(ctx context.Context, id int) error
@@ -2189,8 +1895,202 @@ func NewRepository(t interface {
 
 	return mock
 }
-==================== ./.env ====================
+==================== ./goose.yaml ====================
+driver: postgres
+open: user=${DB_USER} dbname=${DB_NAME} password=${DB_PASSWORD} sslmode=disable==================== ./migrations/20250805132303_init_schema.sql ====================
+-- +goose Up
+CREATE TABLE categories (
+                            id SERIAL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            description TEXT,
+                            CONSTRAINT categories_name_key UNIQUE (name)
+);
 
+CREATE TABLE products (
+                          id SERIAL PRIMARY KEY,
+                          name VARCHAR(255) NOT NULL,
+                          amount INTEGER NOT NULL CHECK (amount >= 0),
+                          categoryid INTEGER NOT NULL,
+                          CONSTRAINT products_name_key UNIQUE (name),
+                          CONSTRAINT products_categoryid_fkey FOREIGN KEY (categoryid) REFERENCES categories(id) ON DELETE RESTRICT
+);
+
+-- +goose Down
+DROP TABLE products;
+DROP TABLE categories;
+==================== ./.golangci.yml ====================
+run:
+  go: '1.24'
+  concurrency: 4
+  issues-exit-code: 1
+  tests: true
+  modules-download-mode: mod
+  allow-parallel-runners: true
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: false
+  print-linter-name: true
+  sort-results: true
+  sort-order:
+    - linter
+    - severity
+    - file
+
+linters:
+  enable-all: true
+  disable:
+    - exhaustruct
+    - nonamedreturns
+    - wrapcheck
+    - gofumpt
+    - gci
+    - tagliatelle
+    - musttag
+    - copyloopvar
+    - intrange
+    - tenv
+
+linters-settings:
+  gosec:
+    excludes:
+      - G401
+      - G505
+      - G306
+      - G115
+  stylecheck:
+    checks:
+      - ST1003
+      - ST1005
+      - ST1006
+      - ST1008
+      - ST1011
+      - ST1012
+      - ST1013
+      - ST1015
+      - ST1016
+      - ST1017
+      - ST1018
+      - ST1019
+      - ST1020
+      - ST1021
+      - ST1022
+      - ST1023
+
+  misspell:
+    ignore-words:
+      - sub_payed
+  whitespace:
+    multi-if: true
+    multi-func: false
+  lll:
+    line-length: 140
+  depguard:
+    rules:
+      main:
+        list-mode: lax
+        files:
+          - $all
+        allow:
+          - $gostd
+          - filippo.io/edwards25519
+          - golang.org/x/crypto
+        deny:
+          - pkg: io/ioutil
+            desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
+  revive:
+    rules:
+      - name: dot-imports
+        disabled: true
+  varnamelen:
+    ignore-names:
+      - i
+      - ok
+      - bs
+      - err
+      - e
+      - tx
+      - id
+      - wg
+      - mx
+      - db
+      - fn
+      - in
+      - tc
+      - t
+      - w
+      - r
+      - c
+  funlen:
+    lines: 100
+    ignore-comments: true
+    statements: 50
+  cyclop:
+    max-complexity: 10
+    package-average: 5.0
+  gocognit:
+    min-complexity: 12
+
+issues:
+  exclude-rules:
+    - linters:
+        - lll
+      source: ".*// "
+  max-issues-per-linter: 0
+  max-same-issues: 0
+==================== ./config/config.go ====================
+package config
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/caarlos0/env/v8"
+	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
+)
+
+type Configuration struct {
+	Port             int           `env:"PORT" envdefault:"8080" validate:"required,min=1,max=65535"`
+	LoggerLevel      string        `env:"LOGGER_LEVEL" envdefault:"INFO" validate:"required,oneof=DEBUG INFO WARN ERROR"`
+	DatabaseURL      string        `env:"DATABASE_URL" validate:"required"`
+	ShuttingDowntime time.Duration `env:"SHUTTING_DOWN_TIME" envdefault:"5" validate:"required,min=5,max=600"`
+}
+
+func Load() (*Configuration, error) {
+	cfg := &Configuration{}
+
+	err := godotenv.Load()
+	if err != nil {
+		return nil, fmt.Errorf("error loading Config.env file: %w", err)
+	}
+
+	if err := env.Parse(cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
+	}
+
+	if err := validator.New().Struct(cfg); err != nil {
+		return nil, fmt.Errorf("validator error: %w", err)
+	}
+
+	return cfg, nil
+
+}
+
+func Mustload() *Configuration {
+	cfg, err := Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %w", err)
+	}
+
+	return cfg
+}
+==================== ./.env ====================
+DB_USER="youruser"
+DB_NAME="yourdb"
+DB_PASSWORD="yourpassword"
 PORT=8080
 LOGGER_LEVEL="INFO"
 DATABASE_URL="postgres://postgres:postgres@localhost:5432/postgres"==================== ./cmd/app/main.go ====================
@@ -2198,16 +2098,19 @@ package main
 
 import (
 	"context"
-	"github.com/Kofandr/Product_Accounting_Service/internal/config"
-	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
-	"github.com/Kofandr/Product_Accounting_Service/internal/server"
-	"github.com/jackc/pgx/v5"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Kofandr/Product_Accounting_Service/config"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
+	"github.com/Kofandr/Product_Accounting_Service/internal/server"
+	"github.com/jackc/pgx/v5"
 )
 
 func main() {
@@ -2224,9 +2127,8 @@ func main() {
 	mainServer := server.New(logg, cfg, db)
 
 	go func() {
-		if err := mainServer.Start(); err != nil && err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server crash")
-
 		}
 	}()
 
@@ -2235,14 +2137,14 @@ func main() {
 
 	<-signalChan
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShuttingDowntime*time.Second)
 	defer cancel()
 
 	logg.Info("Shutting down...")
+
 	if err := mainServer.Shutdown(ctx); err != nil {
 		logg.Error("Shutdown failed", "error", err)
 	} else {
 		logg.Info("Server stopped")
 	}
-
 }

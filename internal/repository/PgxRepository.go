@@ -53,6 +53,7 @@ func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*mode
 		if err := rows.Scan(&c.ID, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}
+
 		categories = append(categories, c)
 	}
 
@@ -65,17 +66,17 @@ func (pgxRepository *PgxRepository) GetCategoriesAll(ctx context.Context) (*mode
 
 func (pgxRepository *PgxRepository) CreateCategory(ctx context.Context, category *model.CreateCategoryRequest) (int, error) {
 	var id int
+
 	err := pgxRepository.db.QueryRow(ctx,
 		"INSERT INTO categories (name, description) VALUES ($1, $2) RETURNING id",
 		category.Name,
 		category.Description,
 	).Scan(&id)
-	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
 
-			if pgErr.Code == "23505" {
-				return id, fmt.Errorf("%w: category '%s' already exists", ErrDuplicate, category.Name)
-			}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23505" {
+			return id, fmt.Errorf("%w: category '%s' already exists", ErrDuplicate, category.Name)
 		}
 
 		return id, fmt.Errorf("failed to create category: %w", err)
@@ -127,6 +128,7 @@ func (pgxRepository *PgxRepository) DeleteCategory(ctx context.Context, id int) 
 	if err != nil {
 		return err
 	}
+
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return pgx.ErrNoRows
@@ -164,6 +166,7 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
     `
 
 	var result model.ProductsCategory
+
 	var products []model.Product
 
 	rows, err := pgxRepository.db.Query(ctx, query, categoryID)
@@ -183,6 +186,7 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
+
 		products = append(products, product)
 	}
 
@@ -208,12 +212,11 @@ func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *
 		product.Amount,
 		product.CategoryID,
 	).Scan(&id)
-	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
 
-			if pgErr.Code == "23505" {
-				return id, fmt.Errorf("%w: products  '%s' already exists", ErrDuplicate, product.Name)
-			}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23505" {
+			return id, fmt.Errorf("%w: products  '%s' already exists", ErrDuplicate, product.Name)
 		}
 
 		return id, fmt.Errorf("failed to create category: %w", err)
@@ -255,6 +258,7 @@ func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, u
 	if err != nil {
 		return err
 	}
+
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return pgx.ErrNoRows
@@ -271,6 +275,7 @@ func (pgxRepository *PgxRepository) DeleteProduct(ctx context.Context, id int) e
 	if err != nil {
 		return err
 	}
+
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return pgx.ErrNoRows
@@ -281,6 +286,7 @@ func (pgxRepository *PgxRepository) DeleteProduct(ctx context.Context, id int) e
 
 func (pgxRepository *PgxRepository) CategoryExists(ctx context.Context, id int) (bool, error) {
 	var exists bool
+
 	query := `SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`
 	err := pgxRepository.db.QueryRow(ctx, query, id).Scan(&exists)
 

@@ -24,7 +24,6 @@ func main() {
 	db, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
-
 	}
 	defer db.Close(context.Background())
 
@@ -41,7 +40,7 @@ func main() {
 
 	<-signalChan
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShuttingDowntime*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.ShuttingDowntime)*time.Second)
 	defer cancel()
 
 	logg.Info("Shutting down...")

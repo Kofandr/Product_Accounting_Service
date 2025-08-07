@@ -39,6 +39,7 @@ func HandlerGet[T any](
 
 			return c.JSON(http.StatusNotFound, map[string]string{"err": notFoundMsg})
 		}
+
 		logg.Error("Database error",
 			"operation", "Get"+entity,
 			"id", id,

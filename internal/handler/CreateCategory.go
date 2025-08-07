@@ -16,6 +16,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 	var category model.CreateCategoryRequest
 	if err := c.Bind(&category); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
+
 		logg.Error("Invalid JSON received", "err", err)
 
 		return c.JSON(http.StatusBadRequest, errResp)
@@ -23,6 +24,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 
 	if err := c.Validate(category); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
+
 		logg.Error("Invalid JSON received", "err", err)
 
 		return c.JSON(http.StatusBadRequest, errResp)
@@ -31,6 +33,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 	id, err := handler.db.CreateCategory(ctx, &category)
 	if err != nil {
 		errResp := map[string]string{"err": "Server error"}
+
 		logg.Error("An error occurred while accessing the database", "err", err)
 
 		return c.JSON(http.StatusInternalServerError, errResp)

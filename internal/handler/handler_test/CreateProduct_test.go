@@ -18,6 +18,7 @@ import (
 
 func TestCreateProduct(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name                    string
 		inputJSON               string
@@ -74,27 +75,34 @@ func TestCreateProduct(t *testing.T) {
 			expectedBody:            `{"err": "Server error"}`,
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
+
 			mockRepo := new(mocks.Repository)
 
 			c := echo.New()
+
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(test.inputJSON))
+
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
 			rec := httptest.NewRecorder()
-			cT := c.NewContext(req, rec)
+
+			echoCtx := c.NewContext(req, rec)
+
 			mockRepo.On("CategoryExists", mock.Anything, test.mockCategoryExistsOn).Return(test.mockCategoryExistsBool, test.mockCategoryExistsError)
 			mockRepo.On("CreateProduct", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
 			handler := handler.New(mockRepo)
-			if err := handler.CreateProduct(cT); err != nil {
+
+			if err := handler.CreateProduct(echoCtx); err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 
 			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
-
 		})
 	}
 }
