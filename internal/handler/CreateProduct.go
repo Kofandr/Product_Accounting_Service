@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func (handler *Handler) CreateProduct(c echo.Context) error {
@@ -19,6 +20,7 @@ func (handler *Handler) CreateProduct(c echo.Context) error {
 
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
+
 	if err := c.Validate(product); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received", "err", err)
@@ -26,14 +28,15 @@ func (handler *Handler) CreateProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 
-	be, err := handler.db.CategoryExists(ctx, product.CategoryID)
+	Exist, err := handler.db.CategoryExists(ctx, product.CategoryID)
 	if err != nil {
 		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)
 
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
-	if !be {
+
+	if !Exist {
 		errResp := map[string]string{"err": "Not found category"}
 		logg.Error("Not found Category", "err", err)
 

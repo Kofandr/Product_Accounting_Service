@@ -1,12 +1,14 @@
-package handler
+package handler_test
 
 import (
-	"github.com/Kofandr/Product_Accounting_Service/internal/handler/appValidator"
-	"github.com/go-playground/validator/v10"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
@@ -23,7 +25,7 @@ func TestHandlerUpdate(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
-		method       func(*Handler, echo.Context) error
+		method       func(*handler.Handler, echo.Context) error
 		param        string
 		requestBody  string
 		mockMethod   string
@@ -36,7 +38,7 @@ func TestHandlerUpdate(t *testing.T) {
 		// Тесты для UpdateCategory
 		{
 			name:        "UpdateCategory_Success",
-			method:      (*Handler).UpdateCategory,
+			method:      (*handler.Handler).UpdateCategory,
 			param:       "1",
 			requestBody: `{"name": "New Category", "description": "New Description"}`,
 			mockMethod:  "UpdateCategory",
@@ -51,7 +53,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 		{
 			name:        "UpdateCategory_NotFound",
-			method:      (*Handler).UpdateCategory,
+			method:      (*handler.Handler).UpdateCategory,
 			param:       "999",
 			requestBody: `{"name": "Not Found Category"}`,
 			mockMethod:  "UpdateCategory",
@@ -65,7 +67,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 		{
 			name:         "UpdateCategory_InvalidID",
-			method:       (*Handler).UpdateCategory,
+			method:       (*handler.Handler).UpdateCategory,
 			param:        "invalid",
 			requestBody:  `{"name": "Test"}`,
 			mockMethod:   "",
@@ -75,7 +77,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 		{
 			name:         "UpdateCategory_InvalidJSON",
-			method:       (*Handler).UpdateCategory,
+			method:       (*handler.Handler).UpdateCategory,
 			param:        "1",
 			requestBody:  `{"name": "Test", invalid}`,
 			mockMethod:   "",
@@ -86,7 +88,7 @@ func TestHandlerUpdate(t *testing.T) {
 
 		{
 			name:        "UpdateProduct_Success",
-			method:      (*Handler).UpdateProduct,
+			method:      (*handler.Handler).UpdateProduct,
 			param:       "2",
 			requestBody: `{"name": "Updated Product", "amount": 10, "category_id": 3}`,
 			mockMethod:  "UpdateProduct",
@@ -102,7 +104,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 		{
 			name:        "UpdateProduct_NotFound",
-			method:      (*Handler).UpdateProduct,
+			method:      (*handler.Handler).UpdateProduct,
 			param:       "888",
 			requestBody: `{"name": "Ghost Product"}`,
 			mockMethod:  "UpdateProduct",
@@ -116,7 +118,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 		{
 			name:         "UpdateProduct_InvalidID",
-			method:       (*Handler).UpdateProduct,
+			method:       (*handler.Handler).UpdateProduct,
 			param:        "nan",
 			requestBody:  `{"name": "Test"}`,
 			mockMethod:   "",
@@ -126,7 +128,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 		{
 			name:         "UpdateProduct_InvalidJSON",
-			method:       (*Handler).UpdateProduct,
+			method:       (*handler.Handler).UpdateProduct,
 			param:        "1",
 			requestBody:  `{invalid json}`,
 			mockMethod:   "",
@@ -142,30 +144,28 @@ func TestHandlerUpdate(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.requestBody))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
-			e.Validator = &appValidator.CustomValidator{Validator: validator.New()}
+			e.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 			c := e.NewContext(req, rec)
 			c.SetParamNames("id")
 			c.SetParamValues(test.param)
 
 			mockDB := new(mocks.Repository)
 
-			// Настраиваем мок только если указан метод
 			if test.mockMethod != "" {
 				mockDB.On(
 					test.mockMethod,
-					mock.Anything,    // context.Context
-					test.mockID,      // ID
-					test.mockRequest, // request object
+					mock.Anything,
+					test.mockID,
+					test.mockRequest,
 				).Return(test.mockReturn)
 			}
 
-			handler := New(mockDB)
+			handler := handler.New(mockDB)
 			err := test.method(handler, c)
 			assert.NoError(t, err)
 			assert.Equal(t, test.expectedCode, rec.Code)
 			assert.JSONEq(t, test.expectedBody, strings.TrimSpace(rec.Body.String()))
 
-			// Проверяем, что ожидаемые методы были вызваны
 			if test.mockMethod != "" {
 				mockDB.AssertExpectations(t)
 			}

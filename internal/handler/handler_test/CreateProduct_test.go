@@ -1,12 +1,14 @@
-package handler
+package handler_test
 
 import (
 	"bytes"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 	"github.com/labstack/echo/v4"
@@ -15,6 +17,7 @@ import (
 )
 
 func TestCreateProduct(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                    string
 		inputJSON               string
@@ -66,7 +69,7 @@ func TestCreateProduct(t *testing.T) {
 			mockCategoryExistsOn:    1,
 			mockCategoryExistsBool:  true,
 			mockCategoryExistsError: nil,
-			mockError:               errors.New("connection failed"),
+			mockError:               apperrors.ErrConnectionFailed,
 			expectedStatus:          http.StatusInternalServerError,
 			expectedBody:            `{"err": "Server error"}`,
 		},
@@ -83,8 +86,10 @@ func TestCreateProduct(t *testing.T) {
 			cT := c.NewContext(req, rec)
 			mockRepo.On("CategoryExists", mock.Anything, test.mockCategoryExistsOn).Return(test.mockCategoryExistsBool, test.mockCategoryExistsError)
 			mockRepo.On("CreateProduct", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
-			handler := New(mockRepo)
-			handler.CreateProduct(cT)
+			handler := handler.New(mockRepo)
+			if err := handler.CreateProduct(cT); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 

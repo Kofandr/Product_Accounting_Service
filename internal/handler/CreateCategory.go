@@ -20,6 +20,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
+
 	if err := c.Validate(category); err != nil {
 		errResp := map[string]string{"err": "Invalid JSON format"}
 		logg.Error("Invalid JSON received", "err", err)

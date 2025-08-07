@@ -5,9 +5,10 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/Kofandr/Product_Accounting_Service/internal/config"
+	"github.com/Kofandr/Product_Accounting_Service/config"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
-	"github.com/Kofandr/Product_Accounting_Service/internal/handler/appValidator"
 	"github.com/Kofandr/Product_Accounting_Service/internal/middleware"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
 	"github.com/go-playground/validator/v10"
@@ -26,11 +27,12 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgx.Conn) *Server {
 	serverEcho := echo.New()
 	pgxRepository := repository.New(db)
 	handler := handler.New(pgxRepository)
+
 	serverEcho.Use(middleware.RequestLogger(logg))
-	serverEcho.Validator = &appValidator.CustomValidator{Validator: validator.New()}
+	serverEcho.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 	serverEcho.GET("/categories", handler.GetCategoriesAll)
-	serverEcho.GET("/categories/:id", handler.GetCategoryById)
+	serverEcho.GET("/categories/:id", handler.GetCategoryByID)
 	serverEcho.POST("/categories", handler.CreateCategory)
 	serverEcho.PATCH("/categories/:id", handler.UpdateCategory)
 	serverEcho.DELETE("/categories/:id", handler.DeleteCategory)

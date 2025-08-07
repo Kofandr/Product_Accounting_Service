@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"errors"
+	"net/http"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func HandlerGet[T any](
@@ -49,30 +50,30 @@ func HandlerGet[T any](
 	return c.JSON(http.StatusOK, model)
 }
 
-func (h *Handler) GetProduct(c echo.Context) error {
+func (handler *Handler) GetProduct(c echo.Context) error {
 	return HandlerGet(
 		c,
-		h.db.GetProduct,
+		handler.db.GetProduct,
 		"Product",
 		"Product not found",
 		"Invalid product ID",
 	)
 }
 
-func (h *Handler) GetCategoryById(c echo.Context) error {
+func (handler *Handler) GetCategoryByID(c echo.Context) error {
 	return HandlerGet(
 		c,
-		h.db.GetCategory,
+		handler.db.GetCategory,
 		"Category",
 		"Category not found",
 		"Invalid category ID",
 	)
 }
 
-func (h *Handler) GetProductsCategory(c echo.Context) error {
+func (handler *Handler) GetProductsCategory(c echo.Context) error {
 	return HandlerGet(
 		c,
-		h.db.GetProductsCategory,
+		handler.db.GetProductsCategory,
 		"ProductsCategory",
 		"Category not found or empty",
 		"Invalid category ID",

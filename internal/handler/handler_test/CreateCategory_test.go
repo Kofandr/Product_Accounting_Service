@@ -1,8 +1,10 @@
-package handler
+package handler_test
 
 import (
 	"bytes"
-	"errors"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 
@@ -17,6 +19,7 @@ import (
 )
 
 func TestHandler_CreateCategory(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		inputJSON      string
@@ -45,7 +48,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 			name:           "Database Error",
 			inputJSON:      `{"name": "Books", "description": "description"}`,
 			mockReturn:     0,
-			mockError:      errors.New("connection failed"),
+			mockError:      apperrors.ErrConnectionFailed,
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"err": "Server error"}`,
 		},
@@ -63,8 +66,10 @@ func TestHandler_CreateCategory(t *testing.T) {
 			cT := c.NewContext(req, rec)
 			mockRepo.On("CreateCategory", mock.Anything, mock.Anything).Return(test.mockReturn, test.mockError)
 
-			handler := New(mockRepo)
-			handler.CreateCategory(cT)
+			handler := handler.New(mockRepo)
+			if err := handler.CreateCategory(cT); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 

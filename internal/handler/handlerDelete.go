@@ -3,22 +3,23 @@ package handler
 import (
 	"context"
 	"errors"
+	"net/http"
+	"strconv"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"net/http"
-	"strconv"
 )
 
-func (h *Handler) DeleteCategory(c echo.Context) error {
-	return h.HandleDelete(c, h.db.DeleteCategory, "Category")
+func (handler *Handler) DeleteCategory(c echo.Context) error {
+	return handler.HandleDelete(c, handler.db.DeleteCategory, "Category")
 }
 
-func (h *Handler) DeleteProduct(c echo.Context) error {
-	return h.HandleDelete(c, h.db.DeleteProduct, "Product")
+func (handler *Handler) DeleteProduct(c echo.Context) error {
+	return handler.HandleDelete(c, handler.db.DeleteProduct, "Product")
 }
 
-func (h *Handler) HandleDelete(c echo.Context, deleteFunc func(context.Context, int) error, entity string) error {
+func (handler *Handler) HandleDelete(c echo.Context, deleteFunc func(context.Context, int) error, entity string) error {
 
 	logg := appctx.LoggerFromContext(c.Request().Context())
 
@@ -45,5 +46,4 @@ func (h *Handler) HandleDelete(c echo.Context, deleteFunc func(context.Context, 
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": entity + " deleted"})
-
 }

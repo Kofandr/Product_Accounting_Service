@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -9,7 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Kofandr/Product_Accounting_Service/internal/config"
+	"github.com/Kofandr/Product_Accounting_Service/config"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
 	"github.com/Kofandr/Product_Accounting_Service/internal/server"
 	"github.com/jackc/pgx/v5"
@@ -29,7 +31,7 @@ func main() {
 	mainServer := server.New(logg, cfg, db)
 
 	go func() {
-		if err := mainServer.Start(); err != nil && err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server crash")
 		}
 	}()
@@ -39,10 +41,11 @@ func main() {
 
 	<-signalChan
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShuttingDowntime*time.Second)
 	defer cancel()
 
 	logg.Info("Shutting down...")
+
 	if err := mainServer.Shutdown(ctx); err != nil {
 		logg.Error("Shutdown failed", "error", err)
 	} else {

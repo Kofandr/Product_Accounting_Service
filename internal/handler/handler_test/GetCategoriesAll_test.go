@@ -1,7 +1,8 @@
 package handler
 
 import (
-	"fmt"
+	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestHandlerGetCategoriesAll(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		mockReturn     *model.AllCategories
@@ -60,7 +62,7 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 		{
 			name:           "Error BD",
 			mockReturn:     &model.AllCategories{},
-			mockError:      fmt.Errorf("erro"),
+			mockError:      apperrors.ErrConnectionFailed,
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"err": "Server error"}`,
 		},
@@ -75,8 +77,10 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 			rec := httptest.NewRecorder()
 			cT := c.NewContext(req, rec)
 			mockBD.On("GetCategoriesAll", mock.Anything).Return(test.mockReturn, test.mockError)
-			handler := New(mockBD)
-			handler.GetCategoriesAll(cT)
+			handler := handler.New(mockBD)
+			if err := handler.GetCategoriesAll(cT); err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
 			assert.Equal(t, test.expectedStatus, rec.Code)
 

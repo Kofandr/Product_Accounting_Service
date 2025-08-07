@@ -1,22 +1,24 @@
-package handler
+package handler_test
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 func TestHandlerGet(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
-		method       func(*Handler, echo.Context) error
+		method       func(*handler.Handler, echo.Context) error
 		param        string
 		mockMethod   string
 		mockOn       int
@@ -27,7 +29,7 @@ func TestHandlerGet(t *testing.T) {
 	}{
 		{
 			name:       "GetCategoryById_Success",
-			method:     (*Handler).GetCategoryById,
+			method:     (*handler.Handler).GetCategoryByID,
 			param:      "1",
 			mockOn:     1,
 			mockMethod: "GetCategory",
@@ -42,7 +44,7 @@ func TestHandlerGet(t *testing.T) {
 		},
 		{
 			name:       "GetProduct_Success",
-			method:     (*Handler).GetProduct,
+			method:     (*handler.Handler).GetProduct,
 			param:      "1",
 			mockMethod: "GetProduct",
 			mockOn:     1,
@@ -58,7 +60,7 @@ func TestHandlerGet(t *testing.T) {
 		},
 		{
 			name:       "GetProductsCategory_Success",
-			method:     (*Handler).GetProductsCategory,
+			method:     (*handler.Handler).GetProductsCategory,
 			param:      "1",
 			mockMethod: "GetProductsCategory",
 			mockOn:     1,
@@ -112,7 +114,7 @@ func TestHandlerGet(t *testing.T) {
 
 			mockBD := new(mocks.Repository)
 			mockBD.On(test.mockMethod, mock.Anything, test.mockOn).Return(test.mockModel, test.mockReturn)
-			handler := New(mockBD)
+			handler := handler.New(mockBD)
 			if err := test.method(handler, c); err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}

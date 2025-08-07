@@ -3,8 +3,9 @@ package handler
 import (
 	"context"
 	"errors"
-	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"net/http"
+
+	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/appctx"
 	"github.com/jackc/pgx/v5"
@@ -70,18 +71,18 @@ func HandlerUpdate[T any](
 	})
 }
 
-func (h *Handler) UpdateCategory(c echo.Context) error {
+func (handler *Handler) UpdateCategory(c echo.Context) error {
 	return HandlerUpdate[model.UpdateCategoryRequest](
 		c,
-		h.db.UpdateCategory,
+		handler.db.UpdateCategory,
 		"Category",
 	)
 }
 
-func (h *Handler) UpdateProduct(c echo.Context) error {
+func (handler *Handler) UpdateProduct(c echo.Context) error {
 	return HandlerUpdate[model.UpdateProductRequest](
 		c,
-		h.db.UpdateProduct,
+		handler.db.UpdateProduct,
 		"Product",
 	)
 }

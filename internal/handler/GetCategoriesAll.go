@@ -16,6 +16,7 @@ func (handler *Handler) GetCategoriesAll(c echo.Context) error {
 	if err != nil {
 		errResp := map[string]string{"err": "Server error"}
 		logg.Error("An error occurred while accessing the database", "err", err)
+
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 

@@ -20,9 +20,11 @@ func New(db repository.Repository) *Handler {
 
 func parseIDParam(c echo.Context) (int, error) {
 	idStr := c.Param("id")
+
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		return 0, fmt.Errorf("invalid id: %w", err)
 	}
+
 	return id, nil
 }

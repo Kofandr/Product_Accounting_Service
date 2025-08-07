@@ -22,7 +22,7 @@ type CategoryRepository interface {
 
 type ProductRepository interface {
 	GetProduct(ctx context.Context, id int) (*model.Product, error)
-	GetProductsCategory(ctx context.Context, categoryId int) (*model.ProductsCategory, error)
+	GetProductsCategory(ctx context.Context, categoryID int) (*model.ProductsCategory, error)
 	CreateProduct(ctx context.Context, product *model.CreateProductRequest) (int, error)
 	UpdateProduct(ctx context.Context, id int, update *model.UpdateProductRequest) error
 	DeleteProduct(ctx context.Context, id int) error

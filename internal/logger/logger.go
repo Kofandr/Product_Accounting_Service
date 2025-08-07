@@ -23,12 +23,12 @@ func New(level string) *slog.Logger {
 	}
 
 	return slog.New(slog.NewJSONHandler(os.Stdout, otps))
-
 }
 
 func MustLoggerFromCtx(ctx context.Context) *slog.Logger {
 	if logger, ok := ctx.Value(middleware.CtxLoggerKey{}).(*slog.Logger); ok {
 		return logger
 	}
+
 	return slog.Default()
 }
