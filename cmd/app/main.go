@@ -10,27 +10,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/Kofandr/Product_Accounting_Service/config"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/logger"
 	"github.com/Kofandr/Product_Accounting_Service/internal/server"
-	"github.com/jackc/pgx/v5"
 )
 
 func main() {
-	cfg := config.Mustload()
+	cfg := config.MustLoad()
 	logg := logger.New(cfg.LoggerLevel)
 
-	db, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	pool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
-	defer db.Close(context.Background())
+	defer pool.Close()
 
-	mainServer := server.New(logg, cfg, db)
+	mainServer := server.New(logg, cfg, pool)
 
 	go func() {
-		if !errors.Is(err, http.ErrServerClosed) {
+		if err := mainServer.Start(); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server crash")
 		}
 	}()

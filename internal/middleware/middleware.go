@@ -9,9 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type CtxLoggerKey struct {
-}
-
 func RequestLogger(logg *slog.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -34,11 +31,11 @@ func RequestLogger(logg *slog.Logger) echo.MiddlewareFunc {
 			res := c.Response()
 
 			logFields := []any{
-				"method", req.Method, // HTTP-метод (GET, POST и т.д.)
-				"path", req.URL.Path, // Путь URL (/sum, /multiply)
+				"method", req.Method,
+				"path", req.URL.Path,
 				"ip", c.RealIP(),
-				"status", res.Status, // HTTP-статус ответа (200, 400 и т.д.)
-				"duration", duration, // Время выполнения запроса
+				"status", res.Status,
+				"duration", duration,
 			}
 
 			if err != nil {

@@ -35,7 +35,7 @@ func Load() (*Configuration, error) {
 	return cfg, nil
 }
 
-func Mustload() *Configuration {
+func MustLoad() *Configuration {
 	cfg, err := Load()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -15,10 +17,10 @@ var (
 )
 
 type PgxRepository struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
-func New(db *pgx.Conn) *PgxRepository {
+func New(db *pgxpool.Pool) *PgxRepository {
 	return &PgxRepository{
 		db,
 	}
