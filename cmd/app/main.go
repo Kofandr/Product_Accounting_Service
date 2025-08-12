@@ -22,7 +22,7 @@ func main() {
 	cfg := config.MustLoad()
 	logg := logger.New(cfg.LoggerLevel)
 
-	pool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	pool, err := pgxpool.New(context.Background(), os.Getenv(cfg.DatabaseURL))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}

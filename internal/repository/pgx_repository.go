@@ -91,31 +91,32 @@ func (pgxRepository *PgxRepository) UpdateCategory(ctx context.Context, id int, 
 	query := `
         UPDATE categories
         SET
-            name = COALESCE(NULLIF($1, ''), name),
-            description = COALESCE(NULLIF($2, ''), description)
+            name = $1,
+            description = $2
         WHERE id = $3
     `
 
-	var namePtr, descPtr interface{}
-	if update.Name != nil {
-		namePtr = *update.Name
-	} else {
-		namePtr = nil
-	}
-
-	if update.Description != nil {
-		descPtr = *update.Description
-	} else {
-		descPtr = nil
-	}
-
-	result, err := pgxRepository.db.Exec(ctx, query, namePtr, descPtr, id)
+	current, err := pgxRepository.GetCategory(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected := result.RowsAffected()
-	if rowsAffected == 0 {
+	name := current.Name
+	if update.Name != nil {
+		name = *update.Name
+	}
+
+	description := current.Description
+	if update.Description != nil {
+		description = *update.Description
+	}
+
+	result, err := pgxRepository.db.Exec(ctx, query, name, description, id)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
 		return pgx.ErrNoRows
 	}
 
@@ -142,7 +143,7 @@ func (pgxRepository *PgxRepository) DeleteCategory(ctx context.Context, id int) 
 func (pgxRepository *PgxRepository) GetProduct(ctx context.Context, id int) (*model.Product, error) {
 	var product model.Product
 	err := pgxRepository.db.QueryRow(ctx,
-		"SELECT id, name, amount, categoryid FROM products WHERE id = $1",
+		"SELECT id, name, amount, category_id FROM products WHERE id = $1",
 		id,
 	).Scan(
 		&product.ID,
@@ -161,9 +162,9 @@ func (pgxRepository *PgxRepository) GetProductsCategory(ctx context.Context, cat
             p.id, 
             p.name, 
             p.amount, 
-            p.categoryid
+            p.category_id
         FROM categories c
-        LEFT JOIN products p ON c.id = p.categoryid
+        LEFT JOIN products p ON c.id = p.category_id
         WHERE c.id = $1
     `
 
@@ -209,7 +210,7 @@ func (pgxRepository *PgxRepository) CreateProduct(ctx context.Context, product *
 	var id int
 
 	err := pgxRepository.db.QueryRow(ctx,
-		"INSERT INTO products (name, amount, categoryid) VALUES ($1, $2, $3) RETURNING id",
+		"INSERT INTO products (name, amount, category_id) VALUES ($1, $2, $3) RETURNING id",
 		product.Name,
 		product.Amount,
 		product.CategoryID,
@@ -233,7 +234,7 @@ func (pgxRepository *PgxRepository) UpdateProduct(ctx context.Context, id int, u
 		SET
     		name = COALESCE(NULLIF($1, ''), name),
 			amount = COALESCE(NULLIF($2, 0), amount),      -- 0 вместо ''
-    		categoryId = COALESCE(NULLIF($3, 0), categoryId) -- 0 вместо ''
+    		categoryId = COALESCE(NULLIF($3, 0), category_id) -- 0 вместо ''
 		WHERE id = $4
     `
 

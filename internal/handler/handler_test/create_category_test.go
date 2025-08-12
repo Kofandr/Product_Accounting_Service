@@ -2,6 +2,8 @@ package handler_test
 
 import (
 	"bytes"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
@@ -43,7 +45,7 @@ func TestHandler_CreateCategory(t *testing.T) {
 			mockReturn:     0,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"err": "Invalid JSON format"}`,
+			expectedBody:   `{"err": "Invalid request data"}`,
 		},
 		{
 			name:           "Database Error",
@@ -62,6 +64,8 @@ func TestHandler_CreateCategory(t *testing.T) {
 			mockRepo := new(mocks.Repository)
 
 			c := echo.New()
+
+			c.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(test.inputJSON))
 

@@ -2,7 +2,9 @@ package handler_test
 
 import (
 	"github.com/Kofandr/Product_Accounting_Service/internal/apperrors"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
 	"github.com/Kofandr/Product_Accounting_Service/internal/handler"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/model"
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository/mocks"
@@ -76,6 +78,8 @@ func TestHandlerGetCategoriesAll(t *testing.T) {
 			mockBD := new(mocks.Repository)
 
 			c := echo.New()
+
+			c.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 

@@ -39,19 +39,21 @@ func intPtr(i int) *int          { return &i }
 func runUpdateTest(t *testing.T, test setCaseUpdate, methodName string, methodFunc handlerFunc) {
 	t.Helper()
 
-	e := echo.New()
+	c := echo.New()
+
+	c.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 	req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.requestBody))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
 	rec := httptest.NewRecorder()
 
-	echoCtx := e.NewContext(req, rec)
+	echoCtx := c.NewContext(req, rec)
 
 	echoCtx.SetParamNames("id")
 	echoCtx.SetParamValues(test.param)
 
-	e.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
+	c.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 	mockDB := new(mocks.Repository)
 	if test.mockRequest != nil {

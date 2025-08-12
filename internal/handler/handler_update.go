@@ -12,7 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func HandlerUpdate[T any](
+func handlerUpdate[T any](
 	c echo.Context,
 	updateFunc func(context.Context, int, *T) error,
 	entityName string,
@@ -72,7 +72,7 @@ func HandlerUpdate[T any](
 }
 
 func (handler *Handler) UpdateCategory(c echo.Context) error {
-	return HandlerUpdate[model.UpdateCategoryRequest](
+	return handlerUpdate[model.UpdateCategoryRequest](
 		c,
 		handler.db.UpdateCategory,
 		"Category",
@@ -80,7 +80,7 @@ func (handler *Handler) UpdateCategory(c echo.Context) error {
 }
 
 func (handler *Handler) UpdateProduct(c echo.Context) error {
-	return HandlerUpdate[model.UpdateProductRequest](
+	return handlerUpdate[model.UpdateProductRequest](
 		c,
 		handler.db.UpdateProduct,
 		"Product",

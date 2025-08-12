@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func HandlerGet[T any](
+func handlerGet[T any](
 	c echo.Context,
 	getFunc func(context.Context, int) (T, error),
 	entity string,
@@ -52,7 +52,7 @@ func HandlerGet[T any](
 }
 
 func (handler *Handler) GetProduct(c echo.Context) error {
-	return HandlerGet(
+	return handlerGet(
 		c,
 		handler.db.GetProduct,
 		"Product",
@@ -62,7 +62,7 @@ func (handler *Handler) GetProduct(c echo.Context) error {
 }
 
 func (handler *Handler) GetCategoryByID(c echo.Context) error {
-	return HandlerGet(
+	return handlerGet(
 		c,
 		handler.db.GetCategory,
 		"Category",
@@ -72,7 +72,7 @@ func (handler *Handler) GetCategoryByID(c echo.Context) error {
 }
 
 func (handler *Handler) GetProductsCategory(c echo.Context) error {
-	return HandlerGet(
+	return handlerGet(
 		c,
 		handler.db.GetProductsCategory,
 		"ProductsCategory",

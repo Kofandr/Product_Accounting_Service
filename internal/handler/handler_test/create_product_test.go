@@ -2,6 +2,8 @@ package handler_test
 
 import (
 	"bytes"
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+	"github.com/go-playground/validator/v10"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -83,6 +85,8 @@ func TestCreateProduct(t *testing.T) {
 			mockRepo := new(mocks.Repository)
 
 			c := echo.New()
+
+			c.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(test.inputJSON))
 

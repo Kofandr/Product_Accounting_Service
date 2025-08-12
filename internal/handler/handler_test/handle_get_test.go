@@ -1,6 +1,8 @@
 package handler_test
 
 import (
+	"github.com/Kofandr/Product_Accounting_Service/internal/appvalidator"
+	"github.com/go-playground/validator/v10"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,6 +33,8 @@ func runGetTest(t *testing.T, test setCaseGet, methodName string, methodFunc han
 	t.Helper()
 
 	c := echo.New()
+
+	c.Validator = &appvalidator.CustomValidator{Validator: validator.New()}
 
 	req := httptest.NewRequest(http.MethodGet, "/"+test.param, nil)
 	rec := httptest.NewRecorder()
