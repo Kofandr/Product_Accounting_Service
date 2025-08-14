@@ -1,14 +1,14 @@
 .PHONE: run start help lint migrate
 
-MAIN_PATH = cmd/myapp/main.go
+MAIN_PATH = cmd/app/main.go
 DOCS_DIR = docs
 MIGRATIONS_DIR = migrations
-DATABASE_URL = "user=postgres password=secret dbname=postgres sslmode=disable"
+DATABASE_URL = "user=postgres password=postgres dbname=postgres sslmode=disable"
 
 run:
-	go run $(MAIN_PATH)
+	@env $$(grep -v '^#' .env | xargs) go run $(MAIN_PATH)
 
-start: lint
+start: lint run
 	go run $(MAIN_PATH)
 
 lint:

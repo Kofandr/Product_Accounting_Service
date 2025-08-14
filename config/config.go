@@ -6,7 +6,6 @@ import (
 
 	"github.com/caarlos0/env/v8"
 	"github.com/go-playground/validator/v10"
-	"github.com/joho/godotenv"
 )
 
 type Configuration struct {
@@ -19,9 +18,8 @@ type Configuration struct {
 func Load() (*Configuration, error) {
 	cfg := &Configuration{}
 
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("error loading Config.env file: %w", err)
+	if err := env.Parse(cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 
 	if err := env.Parse(cfg); err != nil {

@@ -2,13 +2,19 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
+	"github.com/pressly/goose/v3"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -22,11 +28,16 @@ func main() {
 	cfg := config.MustLoad()
 	logg := logger.New(cfg.LoggerLevel)
 
-	pool, err := pgxpool.New(context.Background(), os.Getenv(cfg.DatabaseURL))
+	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 	defer pool.Close()
+
+	if err := applyMigrations(logg, cfg.DatabaseURL); err != nil {
+		logg.Error("Database migrations failed", "error", err)
+		os.Exit(1)
+	}
 
 	mainServer := server.New(logg, cfg, pool)
 
@@ -51,4 +62,21 @@ func main() {
 	} else {
 		logg.Info("Server stopped")
 	}
+}
+
+func applyMigrations(logg *slog.Logger, dsn string) error {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return fmt.Errorf("failed to open DB for migrations: %w", err)
+	}
+	defer db.Close()
+
+	goose.SetBaseFS(os.DirFS("./migrations"))
+
+	if err := goose.Up(db, "."); err != nil {
+		return fmt.Errorf("failed to apply migrations: %w", err)
+	}
+
+	logg.Info("Database migrations applied successfully")
+	return nil
 }
