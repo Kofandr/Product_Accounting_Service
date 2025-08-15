@@ -45,6 +45,8 @@ func New(logg *slog.Logger, cfg *config.Configuration, db *pgxpool.Pool) *Server
 	serverEcho.PATCH("/products/:id", handler.UpdateProduct)
 	serverEcho.DELETE("/products/:id", handler.DeleteProduct)
 
+	serverEcho.GET("/health", handler.Health)
+
 	return &Server{serverEcho, (":" + strconv.Itoa(cfg.Port)), logg, db}
 }
 

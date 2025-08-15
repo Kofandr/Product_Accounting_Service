@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/Kofandr/Product_Accounting_Service/internal/repository"
@@ -27,4 +28,8 @@ func parseIDParam(c echo.Context) (int, error) {
 	}
 
 	return id, nil
+}
+
+func (handler *Handler) Health(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{"message": " OK"})
 }
