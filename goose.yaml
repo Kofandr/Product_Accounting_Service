@@ -1,0 +1,2 @@
+driver: postgres
+open: user=${DB_USER} dbname=${DB_NAME} password=${DB_PASSWORD} sslmode=disable
