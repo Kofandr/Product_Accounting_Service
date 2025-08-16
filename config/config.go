@@ -22,10 +22,6 @@ func Load() (*Configuration, error) {
 		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 
-	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
-	}
-
 	if err := validator.New().Struct(cfg); err != nil {
 		return nil, fmt.Errorf("validator error: %w", err)
 	}

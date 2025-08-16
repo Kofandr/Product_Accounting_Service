@@ -54,7 +54,7 @@ func (handler *Handler) CreateProduct(c echo.Context) error {
 	id, err := handler.db.CreateProduct(ctx, &product)
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
-			errResp := map[string]string{"error": fmt.Sprintf("Product with name '%s' already exists", product.Name)}
+			errResp := map[string]string{"err": fmt.Sprintf("Product with name '%s' already exists", product.Name)}
 
 			logg.Warn("Duplicate product attempt", "name", product.Name, "err", err)
 
@@ -68,7 +68,7 @@ func (handler *Handler) CreateProduct(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"Id product": id,
 	})
 }

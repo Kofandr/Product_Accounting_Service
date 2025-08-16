@@ -37,7 +37,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 	id, err := handler.db.CreateCategory(ctx, &category)
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
-			errResp := map[string]string{"error": fmt.Sprintf("Category with name '%s' already exists", category.Name)}
+			errResp := map[string]string{"err": fmt.Sprintf("Category with name '%s' already exists", category.Name)}
 
 			logg.Warn("Duplicate category attempt", "name", category.Name, "err", err)
 
@@ -51,7 +51,7 @@ func (handler *Handler) CreateCategory(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"Id category": id,
 	})
 }
