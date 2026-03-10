@@ -1,4 +1,4 @@
-Product Accounting Service
+Product Accounting Service    
 REST API сервис для учёта товаров и категорий, написанный на Go.
 Стек
 Go 1.24 · Echo · PostgreSQL · Docker · Docker Compose · Goose · golangci-lint
