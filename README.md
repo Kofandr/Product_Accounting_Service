@@ -1,5 +1,6 @@
 Product Accounting Service    
-REST API сервис для учёта товаров и категорий, написанный на Go.  
+
+REST API сервис для учёта товаров и категорий, написанный на Go. Учебный REST API сервис для учёта товаров и категорий. Писал его чтобы отработать чистую архитектуру, unit-тесты с моками и работу с PostgreSQL. Основной фокус — качество кода и покрытие тестами.  
 
 Стек
 Go 1.24 · Echo · PostgreSQL · Docker · Docker Compose · Goose · golangci-lint
