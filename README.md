@@ -5,7 +5,7 @@ Product Accounting Service
 Стек
 Go 1.24 · Echo · PostgreSQL · Docker · Docker Compose · Goose · golangci-lint
 
-Возможности:
+Характеристика:
 
 CRUD операции для товаров и категорий  
 Чистая многослойная архитектура (handler → service → repository)  
